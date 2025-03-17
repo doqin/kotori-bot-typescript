@@ -40,7 +40,7 @@ const model = genAI.getGenerativeModel({
 
 const PROFILES_FILE = "user_profiles.json"
 
-const MAX_LENGTH = 10;
+const MAX_LENGTH = 4;
 
 async function summarizeUserHistory(userId: string): Promise<{ personality: string; summary: string; facts: string[] }> {
     const userHistory = userHistories[userId]?.messages || [];
@@ -55,7 +55,7 @@ async function summarizeUserHistory(userId: string): Promise<{ personality: stri
     const messagesToSummarize = userHistory.slice(0, userHistory.length - MAX_LENGTH / 2);
 
     const existingProfile = userProfiles[userId] || { personality: "unknown", summary: "", facts: [] };
-    
+
     const summaryPrompt = `
         Analyze the following conversation and extract structured information about the user.
         Identify their personality traits, summarize their interactions, and extract key facts they have explicitly mentioned.

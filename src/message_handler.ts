@@ -1,6 +1,7 @@
 import { Message, TextChannel, DMChannel, ThreadChannel, Channel} from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
+import { downloadImage, analyzeImageWithGemini } from "./image_handler"
 
 // Fetch characters from characters.json
 const characters = JSON.parse(fs.readFileSync("characters.json", "utf8")).characters;
@@ -9,7 +10,7 @@ const characters = JSON.parse(fs.readFileSync("characters.json", "utf8")).charac
 let currentCharacter = characters[0];
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
-    (async() => {    
+    (async() => {
         while(!stopSignal()) {
             await channel.sendTyping();
             await new Promise((resolve) => setTimeout(resolve, 5000)) // Call every 5s
@@ -35,32 +36,51 @@ export async function messageHandler(message: Message) {
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
             let isDone: boolean = false;
-            keepTyping(message.channel, () => isDone);
-    
-            const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
-            const cleanMessage = message.content.replace(botMention, "").trim();
-    
-            if (!cleanMessage) {
-                await message.reply(`Hey ${message.author}, you mentioned me!`);
-                isDone = true;
-                return;
-            }
-    
-            try {
-                const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
-                if (message.channel.isDMBased()) {
-                    await message.channel.send(response);
-                } else {
-                    await message.reply(response);
+
+            if (message.attachments.size > 0) {
+                const attachment = message.attachments.first();
+                    if (!attachment) return;
+            
+                    const imageUrl = attachment.url;
+                    const filePath = await downloadImage(imageUrl, "uploaded_image.png");
+            
+                    let botMessage = await message.reply("Analyzing image... 🧐");
+                try {
+                    // Generate response
+                    const response = await analyzeImageWithGemini(filePath, "Describe this image.");
+                    await botMessage.edit(response);
+                    isDone = true;
+                } catch (error) {
+                    console.error("Error analyzing image:", error);
+                    await botMessage.edit("Sorry, I couldn't analyze the image");
                 }
-                isDone = true;
-            } catch (error) {
-                if (message.channel.isDMBased()) {
-                    await message.channel.send("Sorry, I couldn't generate a response.");
-                } else {
-                    await message.reply("Sorry, I couldn't generate a response.");
+            } else {
+                keepTyping(message.channel, () => isDone);
+                const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
+                const cleanMessage = message.content.replace(botMention, "").trim();
+        
+                if (!cleanMessage) {
+                    await message.reply(`Hey ${message.author}, you mentioned me!`);
+                    isDone = true;
+                    return;
                 }
-                isDone = true;
+        
+                try {
+                    const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
+                    if (message.channel.isDMBased()) {
+                        await message.channel.send(response);
+                    } else {
+                        await message.reply(response);
+                    }
+                    isDone = true;
+                } catch (error) {
+                    if (message.channel.isDMBased()) {
+                        await message.channel.send("Sorry, I couldn't generate a response.");
+                    } else {
+                        await message.reply("Sorry, I couldn't generate a response.");
+                    }
+                    isDone = true;
+                }
             }
         }
     }

@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
+    "axios": "^1.8.3",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7"
   },

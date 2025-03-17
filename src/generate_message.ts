@@ -47,7 +47,7 @@ export async function generateGeminiResponse(
                     - Personality: ${userProfile.personality} \n
                     - Summary: ${userProfile.summary} \n
                     - Facts: ${userProfile.facts.join(", ")}\n
-                    Keep responses short and casual.`
+                    Keep responses short and casual. Don't use emojis.`
             }
         ]
     };
