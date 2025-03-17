@@ -1,6 +1,7 @@
-import { Message } from "discord.js"
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv"
+import { Message } from "discord.js";
+import { GoogleGenerativeAI , Part} from "@google/generative-ai";
+import dotenv from "dotenv";
+import axios from "axios";
 import { loadHistory, saveHistory } from "./chat_history_handler";
 import { loadUserProfiles, updateUserProfile } from "./user_profile_handler";
 import { UserProfile, ChatHistory} from "./interfaces";
@@ -57,14 +58,33 @@ export async function generateGeminiResponse(
             history: [systemMessage, ...(chatHistories[channelId]?.messages.map(({ role, parts }) => ({ role, parts })) || [])]
         });
 
-        const userMessage = `${message.author.displayName} (${message.author.username}): ${messageContent}`;
-        const result = await chat.sendMessage(userMessage);
+        const messageParts: Part[] = [{ text: messageContent }];
+
+        if (message.attachments.size > 0) {
+            for (const attachment of message.attachments.values()) {
+                if (attachment.contentType?.startsWith("image/")) {
+                    try {
+                        const base64Image = await imageUrlToBase64(attachment.url);
+                        messageParts.push({
+                            inlineData: {
+                                mimeType: attachment.contentType,
+                                data: base64Image, // ✅ Now it's correctly Base64-encoded
+                            },
+                        });
+                    } catch (error) {
+                        console.error("Error converting image to Base64:", error);
+                    }
+                }
+            }
+        }
+        const result = await chat.sendMessage(messageParts);
+
         const aiResponse = result.response.text()?.trim() || "I couldn't generate a response.";
 
         // Store messages in history
-        addMessageToHistory(chatHistories[channelId], message.author.id, [{ text: userMessage }], "user");
-        addMessageToHistory(userHistories[message.author.id], message.author.id, [{ text: userMessage }], "user");
-        addMessageToHistory(chatHistories[channelId], "system", [{ text: aiResponse }], "model");
+        chatHistories[channelId].messages.push({ role: "user", userId: message.author.id, parts: messageParts, timestamp: Date.now() });
+        chatHistories[channelId].messages.push({ role: "model", userId: "system", parts: [{ text: aiResponse }], timestamp: Date.now() });
+        userHistories[message.author.id].messages.push({ role: "user", userId: message.author.id, parts: messageParts, timestamp: Date.now() });
 
         await updateUserProfile(message.author.id);
 
@@ -110,18 +130,8 @@ async function summarizeAndTrimHistory(channelId: string) {
       ...history.messages.slice(-MAX_LENGTH / 2)
     ];
   }
-  
 
-function addMessageToHistory(history: ChatHistory, userId: string, parts: { text: string }[], role: "user" | "model") {
-    if (!history) {
-      history = { messages: [] };
-    }
-  
-    history.messages.push({
-      role,
-      userId,
-      parts,
-      timestamp: Date.now(),
-    });
-  }
-  
+async function imageUrlToBase64(imageUrl: string): Promise<string> {
+  const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+  return Buffer.from(response.data).toString("base64");
+}

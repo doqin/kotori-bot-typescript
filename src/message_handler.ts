@@ -36,51 +36,31 @@ export async function messageHandler(message: Message) {
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
             let isDone: boolean = false;
-
-            if (message.attachments.size > 0) {
-                const attachment = message.attachments.first();
-                    if (!attachment) return;
-            
-                    const imageUrl = attachment.url;
-                    const filePath = await downloadImage(imageUrl, "uploaded_image.png");
-            
-                    let botMessage = await message.reply("Analyzing image... 🧐");
-                try {
-                    // Generate response
-                    const response = await analyzeImageWithGemini(filePath, "Describe this image.");
-                    await botMessage.edit(response);
-                    isDone = true;
-                } catch (error) {
-                    console.error("Error analyzing image:", error);
-                    await botMessage.edit("Sorry, I couldn't analyze the image");
-                }
-            } else {
-                keepTyping(message.channel, () => isDone);
-                const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
-                const cleanMessage = message.content.replace(botMention, "").trim();
+            keepTyping(message.channel, () => isDone);
+            const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
+            const cleanMessage = message.content.replace(botMention, "").trim();
         
-                if (!cleanMessage) {
-                    await message.reply(`Hey ${message.author}, you mentioned me!`);
-                    isDone = true;
-                    return;
-                }
+            if (!cleanMessage) {
+                await message.reply(`Hey ${message.author}, you mentioned me!`);
+                isDone = true;
+                return;
+            }
         
-                try {
-                    const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
-                    if (message.channel.isDMBased()) {
-                        await message.channel.send(response);
-                    } else {
-                        await message.reply(response);
-                    }
-                    isDone = true;
-                } catch (error) {
-                    if (message.channel.isDMBased()) {
-                        await message.channel.send("Sorry, I couldn't generate a response.");
-                    } else {
-                        await message.reply("Sorry, I couldn't generate a response.");
-                    }
-                    isDone = true;
+            try {
+                const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
+                if (message.channel.isDMBased()) {
+                    await message.channel.send(response);
+                } else {
+                    await message.reply(response);
                 }
+                isDone = true;
+            } catch (error) {
+                if (message.channel.isDMBased()) {
+                    await message.channel.send("Sorry, I couldn't generate a response.");
+                } else {
+                    await message.reply("Sorry, I couldn't generate a response.");
+                }
+                isDone = true;
             }
         }
     }
