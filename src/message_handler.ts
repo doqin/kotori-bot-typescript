@@ -1,7 +1,6 @@
 import { Message, TextChannel, DMChannel, ThreadChannel, Channel} from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
-import { downloadImage, analyzeImageWithGemini } from "./image_handler"
 
 // Fetch characters from characters.json
 const characters = JSON.parse(fs.readFileSync("characters.json", "utf8")).characters;
