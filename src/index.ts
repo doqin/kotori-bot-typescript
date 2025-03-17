@@ -1,7 +1,7 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import dotenv from "dotenv";
 
-import { guildMessageHandler } from "./message_handler";
+import { messageHandler } from "./message_handler";
 
 // Loads .env file contents
 dotenv.config();
@@ -23,6 +23,6 @@ client.once("ready", () => {
 
 
 // Set callback for dealing with certain messages
-client.on("messageCreate", guildMessageHandler);
+client.on("messageCreate", messageHandler);
 
 client.login(process.env.TOKEN);

@@ -17,7 +17,7 @@ function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal
     })();
 }
 
-export async function guildMessageHandler(message: Message) {
+export async function messageHandler(message: Message) {
     console.log(`${message.author.displayName}: ${message.content}`);
 
     if (message.author.bot) return;
@@ -48,10 +48,18 @@ export async function guildMessageHandler(message: Message) {
     
             try {
                 const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
-                await message.reply(response);
+                if (message.channel.isDMBased()) {
+                    await message.channel.send(response);
+                } else {
+                    await message.reply(response);
+                }
                 isDone = true;
             } catch (error) {
-                await message.reply("Sorry, I couldn't generate a response.");
+                if (message.channel.isDMBased()) {
+                    await message.channel.send("Sorry, I couldn't generate a response.");
+                } else {
+                    await message.reply("Sorry, I couldn't generate a response.");
+                }
                 isDone = true;
             }
         }
