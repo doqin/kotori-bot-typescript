@@ -39,12 +39,6 @@ export async function messageHandler(message: Message) {
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
             const cleanMessage = message.content.replace(botMention, "").trim();
         
-            if (!cleanMessage) {
-                await message.reply(`Hey ${message.author}, you mentioned me!`);
-                isDone = true;
-                return;
-            }
-        
             try {
                 const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
                 if (message.channel.isDMBased()) {
