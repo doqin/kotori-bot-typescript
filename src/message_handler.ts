@@ -1,4 +1,4 @@
-import { Message, TextChannel, DMChannel, ThreadChannel, Channel} from "discord.js";
+import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
 
@@ -40,14 +40,43 @@ export async function messageHandler(message: Message) {
             const cleanMessage = message.content.replace(botMention, "").trim();
         
             try {
-                const response = await generateGeminiResponse(message, cleanMessage, currentCharacter);
+                const { text, images }  = await generateGeminiResponse(message, cleanMessage, currentCharacter);
                 if (message.channel.isDMBased()) {
-                    await message.channel.send(response);
+                    if (images.length > 0) {
+                        await message.channel.send({
+                            content: text,
+                            files: images.map((img, index) => ({
+                                attachment: img,
+                                name: `image_${index + 1}.png`
+                            }))
+                        });
+                    } else {
+                        if (text) {
+                            await message.channel.send(text);
+                        } else {
+                            console.error("Response is empty");
+                        }
+                    }
                 } else {
-                    await message.reply(response);
+                    if (images.length > 0) {
+                        await message.reply({
+                            content: text,
+                            files: images.map((img, index) => ({
+                                attachment: img,
+                                name: `image_${index + 1}.png`
+                            }))
+                        });
+                    } else {
+                        if (text) {
+                            await message.reply(text);
+                        } else {
+                            console.error("Response is empty");
+                        }
+                    } 
                 }
                 isDone = true;
             } catch (error) {
+                console.error("Failed to handle message:", error);
                 if (message.channel.isDMBased()) {
                     await message.channel.send("Sorry, I couldn't generate a response.");
                 } else {
