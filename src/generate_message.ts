@@ -5,6 +5,7 @@ import { HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
 import { loadHistory, saveHistory } from "./chat_history_handler";
 import { loadUserProfiles, updateUserProfile } from "./user_profile_handler";
 import { UserProfile, ChatHistory} from "./interfaces";
+import { updateCharacterFacts } from "./character_profile_handler";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -78,12 +79,12 @@ export async function generateGeminiResponse(
         role: "user",
         parts: [
             {
-                text: `From now on, you are ${character.name}, ${character.description}. Your personality: ${character.personality}.\n
+                text: `From now on, you are ${character.name}, ${character.description}. Your personality: ${character.personality}. Your lore: ${character.lore}. Facts about yourself: ${character.facts.join(", ")}\n
                     This user has talked to you before. Here is what you know about them: \n
                     - Personality: ${userProfile.personality} \n
                     - Summary: ${userProfile.summary} \n
                     - Facts: ${userProfile.facts.join(", ")}\n
-                    Keep responses short and casual. Don't use emojis.\n
+                    Keep responses short and casual, don't talk about your personal info unless it's relevant. Don't use emojis.\n
                     You can generate both text and images. If the user asks for a drawing, respond with an image.\n`
             }
         ]
@@ -94,7 +95,7 @@ export async function generateGeminiResponse(
             history: [systemMessage, ...(chatHistories[channelId]?.messages.map(({ role, parts }) => ({ role, parts })) || [])]
         });
 
-        const messageParts: Part[] = [{ text: messageContent }];
+        const messageParts: Part[] = [{ text: `${message.author.displayName} (${message.author.username}): ${messageContent}` }];
 
         if (message.attachments.size > 0) {
             for (const attachment of message.attachments.values()) {
@@ -155,6 +156,13 @@ export async function generateGeminiResponse(
           timestamp: Date.now() 
         });
 
+        character.messages.push({
+          role: "model", 
+          userId: "system", 
+          parts: aiResponseParts, 
+          timestamp: Date.now() 
+        })
+
         userHistories[message.author.id].messages.push({ 
           role: "user", 
           userId: message.author.id, 
@@ -163,6 +171,7 @@ export async function generateGeminiResponse(
         });
 
         await updateUserProfile(message.author.id);
+        await updateCharacterFacts();
 
         saveHistory(chatHistories, CHAT_HISTORY_FILE);
         saveHistory(userHistories, USER_HISTORY_FILE);

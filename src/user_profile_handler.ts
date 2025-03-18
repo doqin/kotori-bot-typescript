@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI, SchemaType, ObjectSchema } from "@google/generative-ai";
 import dotenv from "dotenv";
 import fs from "fs"
-import { UserProfile, ChatHistory } from "./interfaces"
+import { UserProfile } from "./interfaces"
 import { userProfiles, userHistories } from "./generate_message";
 
 dotenv.config();
@@ -41,6 +41,7 @@ const model = genAI.getGenerativeModel({
 const PROFILES_FILE = "user_profiles.json"
 
 const MAX_LENGTH = 4;
+const MAX_FACTS = 50;
 
 async function summarizeUserHistory(userId: string): Promise<{ personality: string; summary: string; facts: string[] }> {
     const userHistory = userHistories[userId]?.messages || [];
@@ -63,7 +64,7 @@ async function summarizeUserHistory(userId: string): Promise<{ personality: stri
         Existing User Profile:
         - Personality: ${existingProfile.personality}
         - Summary: ${existingProfile.summary}
-        - Important Facts: ${existingProfile.facts.join(", ")}
+        - Facts: ${existingProfile.facts.join(", ")}
 
         Messages:
         ${messagesToSummarize.map(m => `${m.role}: ${m.parts.map(p => p.text).join(" ")}`).join("\n")}
@@ -115,6 +116,10 @@ export async function updateUserProfile(userId: string) {
         userProfiles[userId].personality = summaryData.personality;
         userProfiles[userId].summary = summaryData.summary;
         userProfiles[userId].facts = [...new Set([...userProfiles[userId].facts, ...summaryData.facts])];
+
+        while (userProfiles[userId].facts.length > MAX_FACTS) {
+            userProfiles[userId].facts.shift();
+        }
 
         userHistories[userId].messages = userHistories[userId].messages.slice(-MAX_LENGTH / 2);
     }

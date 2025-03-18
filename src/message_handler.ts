@@ -2,12 +2,6 @@ import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } fro
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
 
-// Fetch characters from characters.json
-const characters = JSON.parse(fs.readFileSync("characters.json", "utf8")).characters;
-
-// Select current character as the first character in the list
-let currentCharacter = characters[0];
-
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
     (async() => {
         while(!stopSignal()) {
@@ -17,12 +11,19 @@ function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal
     })();
 }
 
+// Fetch characters from characters.json
+export let characters = JSON.parse(fs.readFileSync("characters.json", "utf8"));
+
+// Select current character as the first character in the list
+export let currentCharacter = characters.characters[0];
+
 export async function messageHandler(message: Message) {
     console.log(`${message.author.displayName}: ${message.content}`);
 
     if (message.author.bot) return;
 
     if (message.channel instanceof TextChannel || message.channel instanceof DMChannel || message.channel instanceof ThreadChannel) {
+        
         // If message is a reply, check which message is replying to
         let repliedMessage;
         if (message.reference) {

@@ -6,7 +6,7 @@ export interface UserProfile {
     facts: string[],
 }
 
-interface ChatMessage {
+export interface ChatMessage {
     role: "user" | "model";
     userId: string;
     parts: ({ text: string } | Part)[];
