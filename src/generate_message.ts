@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import dotenv from "dotenv";
 import axios from "axios";
-import { Part } from "@google/generative-ai";
+import { HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
 import { loadHistory, saveHistory } from "./chat_history_handler";
 import { loadUserProfiles, updateUserProfile } from "./user_profile_handler";
 import { UserProfile, ChatHistory} from "./interfaces";
@@ -15,13 +15,42 @@ dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MAX_LENGTH = 50;
 
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-exp-image-generation",
-  generationConfig: {
-      responseModalities: ["Text", "Image"],
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
   },
-});
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+];
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel(
+  {
+    model: "gemini-2.0-flash-exp-image-generation",
+    generationConfig: {
+        responseModalities: ["Text", "Image"],
+    },
+  },
+);
 
 const chatHistories: Record<string, ChatHistory> = loadHistory(CHAT_HISTORY_FILE);
 export const userHistories: Record<string, ChatHistory> = loadHistory(USER_HISTORY_FILE);
@@ -84,13 +113,14 @@ export async function generateGeminiResponse(
                 }
             }
         }
-        const result = await chat.sendMessage(messageParts);
+        const result = await chat.sendMessage(messageParts, safetySettings);
         const response = await result.response;
+
+        console.log("Full response:", JSON.stringify(response, null, 2));
 
         if (response.candidates?.[0].finishReason === "IMAGE_SAFETY") {
           return { text: "Couldn't generate image for reason: \"IMAGE_SAFETY\"", images: [] };
         }
-        console.log("Full response:", JSON.stringify(response, null, 2));
 
         const responseCandidates = response.candidates?.[0]?.content;
         const responseParts = responseCandidates?.parts ?? [];
