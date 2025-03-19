@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { ActivityType, Message } from "discord.js";
 import dotenv from "dotenv";
 import axios from "axios";
 import { HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
@@ -63,6 +63,31 @@ export async function generateGeminiResponse(
     character: any
 ): Promise<{ text: string; images: Buffer[] }> {
     const channelId = message.channel.id;
+
+    let activityText = "not currently doing anything.";
+
+    for (const [, guild] of message.client.guilds.cache) {
+        const member = guild.members.cache.get(message.author.id);
+        if (member?.presence?.activities.length) {
+            const activities = member.presence.activities.map((act) => {
+                if (act.type === 0) return `playing ${act.name}`;
+                if (act.type === 1) return `streaming ${act.name}`;
+                if (act.type === 2) {
+                  if (act.name === "Spotify" && act.details && act.state) {
+                    return `listening to "${act.details}" by ${act.state}`;
+                  }
+                  return `listening to ${act.name}`;
+                }
+                if (act.type === 3) return `watching ${act.name}`;
+                return `doing ${act.name}`;
+            });
+            activityText = activities.join(", ");
+            break; // Stop once we find an active presence
+        }
+    }
+
+    console.log("Activity: ", activityText);
+
     await summarizeAndTrimHistory(channelId);
 
     if (!chatHistories[channelId]) {
@@ -83,7 +108,8 @@ export async function generateGeminiResponse(
                     This user has talked to you before. Here is what you know about them: \n
                     - Personality: ${userProfile.personality} \n
                     - Summary: ${userProfile.summary} \n
-                    - Facts: ${userProfile.facts.join(", ")}\n
+                    - Facts: ${userProfile.facts.join(", ")} \n
+                    - Discord Activity: ${activityText} \n
                     Keep responses short and casual, don't talk about your personal info unless it's relevant. Don't use emojis.\n
                     You can generate both text and images. If the user asks for a drawing, respond with an image.\n`
             }
@@ -117,7 +143,8 @@ export async function generateGeminiResponse(
         const result = await chat.sendMessage(messageParts, safetySettings);
         const response = await result.response;
 
-        console.log("Full response:", JSON.stringify(response, null, 2));
+        // For debugging
+        // console.log("Full response:", JSON.stringify(response, null, 2));
 
         if (response.candidates?.[0].finishReason === "IMAGE_SAFETY") {
           return { text: "Couldn't generate image for reason: \"IMAGE_SAFETY\"", images: [] };
@@ -126,7 +153,8 @@ export async function generateGeminiResponse(
         const responseCandidates = response.candidates?.[0]?.content;
         const responseParts = responseCandidates?.parts ?? [];
 
-        console.log("Response parts:", JSON.stringify(responseParts, null, 2));
+        // For debugging
+        // console.log("Response parts:", JSON.stringify(responseParts, null, 2));
 
         const aiTextResponse: string = responseCandidates?.parts.find((p: Part) => p.text)?.text || "";
 
