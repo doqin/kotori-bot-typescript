@@ -11,21 +11,21 @@ const userSchema: ObjectSchema = {
     description: "Structured data about the user's personality, summary, and facts.",
     type: SchemaType.OBJECT,
     properties: {
-      personality: {
-        type: SchemaType.STRING as const,
-        description: "A few words describing the user's personality.",
-        nullable: false,
-      },
-      summary: {
-        type: SchemaType.STRING as const,
-        description: "A concise summary of their interactions so far.",
-        nullable: false,
-      },
-      facts: {
-        type: SchemaType.ARRAY as const,
-        description: "List of important facts the user has explicitly mentioned.",
-        items: { type: SchemaType.STRING as const },
-      },
+        personality: {
+            type: SchemaType.STRING as const,
+            description: "A few words describing the user's personality.",
+            nullable: false,
+        },
+        summary: {
+            type: SchemaType.STRING as const,
+            description: "A concise summary of their interactions so far.",
+            nullable: false,
+        },
+        facts: {
+            type: SchemaType.ARRAY as const,
+            description: "List of important facts the user has explicitly mentioned.",
+            items: { type: SchemaType.STRING as const },
+        },
     },
     required: ["personality", "summary", "facts"],
 };
@@ -33,8 +33,8 @@ const userSchema: ObjectSchema = {
 const model = genAI.getGenerativeModel({
     model: "gemini-2.0-flash",
     generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: userSchema,
+        responseMimeType: "application/json",
+        responseSchema: userSchema,
     },
 });
 
