@@ -335,6 +335,26 @@
             }
           ],
           "timestamp": 1742364550767
+        },
+        {
+          "role": "model",
+          "userId": "system",
+          "parts": [
+            {
+              "text": "Huh? What's got you all riled up?"
+            }
+          ],
+          "timestamp": 1742370870848
+        },
+        {
+          "role": "model",
+          "userId": "system",
+          "parts": [
+            {
+              "text": "Heya! What's up?"
+            }
+          ],
+          "timestamp": 1742378865654
         }
       ]
     }

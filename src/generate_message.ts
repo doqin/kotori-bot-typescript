@@ -10,7 +10,7 @@ import { updateCharacterFacts } from "./character_profile_handler";
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const CHAT_HISTORY_FILE = "chat_history.json";
-const USER_HISTORY_FILE = "user_history.json";
+export const USER_HISTORY_FILE = "user_history.json";
 
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
