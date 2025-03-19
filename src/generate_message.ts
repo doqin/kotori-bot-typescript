@@ -9,7 +9,7 @@ import { updateCharacterFacts } from "./character_profile_handler";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const CHAT_HISTORY_FILE = "chat_history.json";
+export const CHAT_HISTORY_FILE = "chat_history.json";
 export const USER_HISTORY_FILE = "user_history.json";
 
 dotenv.config();
@@ -53,7 +53,7 @@ const model = genAI.getGenerativeModel(
   },
 );
 
-const chatHistories: Record<string, ChatHistory> = loadHistory(CHAT_HISTORY_FILE);
+export const chatHistories: Record<string, ChatHistory> = loadHistory(CHAT_HISTORY_FILE);
 export const userHistories: Record<string, ChatHistory> = loadHistory(USER_HISTORY_FILE);
 export const userProfiles: Record<string, UserProfile> = loadUserProfiles();
 
@@ -176,7 +176,7 @@ export async function generateGeminiResponse(
         saveHistory(chatHistories, CHAT_HISTORY_FILE);
         saveHistory(userHistories, USER_HISTORY_FILE);
 
-        return {text: aiTextResponse.replace("Kako: ", ""), images: images};
+        return {text: aiTextResponse.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", ""), images: images};
     } catch (error) {
         console.error("Gemini API Error:", error);
         return { text: "Sorry, I'm having trouble thinking right now!", images: []};

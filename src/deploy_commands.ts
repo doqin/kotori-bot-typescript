@@ -19,33 +19,34 @@ const commands = [
         .setContexts(contexts),
     new SlashCommandBuilder()
         .setName("clear")
-        .setDescription("Clear a user's data from the bot's memory")
+        .setDescription("Clear data from the bot's memory")
         .addStringOption(option =>
             option.setName("target")
                 .setDescription("What do you want to clear?")
                 .setRequired(true)
                 .addChoices(
-                    { name: "Profile", value: "profile" },
-                    { name: "History", value: "history" }
+                    { name: "Profile"   , value: "profile"  },
+                    { name: "History"   , value: "history"  },
                 )
         )
         .setContexts(contexts),
     new SlashCommandBuilder()
         .setName("modclear")
-        .setDescription("Clear a user's data from the bot's memory")
+        .setDescription("Clear data from the bot's memory")
         .addStringOption(option =>
             option.setName("target")
                 .setDescription("What do you want to clear?")
                 .setRequired(true)
                 .addChoices(
-                    { name: "Profile", value: "profile" },
-                    { name: "History", value: "history" }
+                    { name: "Profile"   , value: "profile"  },
+                    { name: "History"   , value: "history"  },
+                    { name: "Chat"      , value: "chat"     }
                 )
         )
         .addUserOption(option =>
             option.setName("user")
                 .setDescription("Select a user")
-                .setRequired(true)
+                .setRequired(false)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .setContexts(contexts)

@@ -1,8 +1,8 @@
 
-import { ChatInputCommandInteraction, PermissionFlagsBits, Interaction } from "discord.js";
+import { ChatInputCommandInteraction, PermissionFlagsBits, Interaction, ChannelType } from "discord.js";
 import { saveHistory } from "./chat_history_handler";
 import { updateUserProfile } from "./user_profile_handler";
-import { userHistories, userProfiles, USER_HISTORY_FILE } from "./generate_message";
+import { userHistories, userProfiles, USER_HISTORY_FILE, chatHistories, CHAT_HISTORY_FILE } from "./generate_message";
 
 export async function commandHandler(interaction: Interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -39,6 +39,20 @@ async function clearCommand(interaction: ChatInputCommandInteraction) {
 
 async function modclearCommand(interaction: ChatInputCommandInteraction) {
     const target = interaction.options.getString("target");
+    const channel = interaction.channel;
+    const channelId = interaction.channelId;
+    let channelName: string;
+
+    if (!channel) {
+        channelName = "Unknown Channel";
+    } else if (channel.type === ChannelType.DM) {
+        channelName = "Direct Message";
+    } else if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement) {
+        channelName = channel.name;
+    } else {
+        channelName = "Unknown";
+    }
+
     const user = interaction.options.getUser("user") || interaction.user;
     const userId = user.id;
 
@@ -61,6 +75,10 @@ async function modclearCommand(interaction: ChatInputCommandInteraction) {
         delete userHistories[userId];
         await interaction.reply(`Chat history cleared for **${user.username}**.`)
         await saveHistory(userHistories, USER_HISTORY_FILE);
+    } else if (target === "chat") {
+        delete chatHistories[channelId];
+        await interaction.reply(`Chat cleared for **${channelName}**.`)
+        await saveHistory(chatHistories, CHAT_HISTORY_FILE);
     } else {
         await interaction.reply("Invalid option.");
     }
