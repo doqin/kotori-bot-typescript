@@ -75,8 +75,9 @@ export async function updateCharacterFacts() {
         const summaryData = await collectCharacterFacts();
 
         currentCharacter.facts = [...new Set([...currentCharacter.facts, ...summaryData.facts])]
-        if (currentCharacter.facts > MAX_FACTS) {
-            currentCharacter.facts = [currentCharacter.facts[0], ...(currentCharacter.facts.slice(-MAX_FACTS))];
+        
+        if (currentCharacter.facts.length > MAX_FACTS) {
+            currentCharacter.facts = [currentCharacter.facts[0], ...currentCharacter.facts.slice(-MAX_FACTS)]
         }
         currentCharacter.messages = currentCharacter.messages.slice(-MAX_LENGTH / 2);
     }
