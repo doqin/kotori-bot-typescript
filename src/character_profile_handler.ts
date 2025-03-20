@@ -2,6 +2,7 @@ import { GoogleGenerativeAI, SchemaType, ObjectSchema } from "@google/generative
 import dotenv from "dotenv";
 import fs from "fs"
 import { characters, currentCharacter } from "./message_handler";
+import { addError } from ".";
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -47,7 +48,7 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
 
     const summaryPrompt = `
         Analyze the following conversation and extract structured information about the character.
-        Extract key facts they have explicitly mentioned.
+        Extract important key facts about themself that they have explicitly mentioned.
 
         Existing Character Facts:
         ${characterProfile.join(", ")}
@@ -62,7 +63,8 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
         const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: summaryPrompt }] }] });
         return JSON.parse(result.response.text());
     } catch (error) {
-        console.error("Error summarizing user history:", error);
+        // console.error("Error summarizing user history:", error);
+        addError(`Error summarizing user history: ${error}`);
         return {
             facts: currentCharacter.facts || []
         };

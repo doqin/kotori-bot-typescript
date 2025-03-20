@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import fs from "fs"
 import { UserProfile } from "./interfaces"
 import { userProfiles, userHistories } from "./generate_message";
+import { addError } from ".";
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -77,7 +78,8 @@ async function summarizeUserHistory(userId: string): Promise<{ personality: stri
         const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: summaryPrompt }] }] });
         return JSON.parse(result.response.text());
     } catch (error) {
-        console.error("Error summarizing user history:", error);
+        // console.error("Error summarizing user history:", error);
+        addError(`Error summarizing user history: ${error}`);
         return {
             personality: userProfiles[userId]?.personality || "unknown",
             summary: userProfiles[userId]?.summary || "",
@@ -92,7 +94,8 @@ export function loadUserProfiles(): Record<string, UserProfile> {
         const data = fs.readFileSync(PROFILES_FILE, "utf-8").trim();
         return data ? JSON.parse(data) : {};
     } catch (error) {
-        console.error("Error loading user profiles:", error);
+        // console.error("Error loading user profiles:", error);
+        addError(`Error loading user profiles: ${error}`);
         return {};
     }
 }

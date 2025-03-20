@@ -1,6 +1,7 @@
 import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
+import { addMessage, addError } from ".";
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
     (async() => {
@@ -18,7 +19,8 @@ export let characters = JSON.parse(fs.readFileSync("characters.json", "utf8"));
 export let currentCharacter = characters.characters[0];
 
 export async function messageHandler(message: Message) {
-    console.log(`${message.author.displayName}: ${message.content}`);
+    // console.log(`${message.author.displayName}: ${message.content}`);
+    addMessage(`${message.author.displayName}: ${message.content}`);
 
     if (message.author.bot) return;
 
@@ -30,7 +32,8 @@ export async function messageHandler(message: Message) {
             try {
                 repliedMessage = await message.channel.messages.fetch(message.reference.messageId!);
             } catch (error) {
-                console.error("Failed to fetch replied message:", error);
+                // console.error("Failed to fetch replied message:", error);
+                addError(`Failed to fetch replied message: ${error}`);
             }
         }
         // If meets condition reply to message
@@ -55,7 +58,8 @@ export async function messageHandler(message: Message) {
                         if (text) {
                             await message.channel.send(text);
                         } else {
-                            console.error("Response is empty");
+                            // console.error("Response is empty");
+                            addError(`Response is empty`);
                         }
                     }
                 } else {
@@ -71,13 +75,15 @@ export async function messageHandler(message: Message) {
                         if (text) {
                             await message.reply(text);
                         } else {
-                            console.error("Response is empty");
+                            // console.error("Response is empty");
+                            addError(`Response is empty`);
                         }
                     } 
                 }
                 isDone = true;
             } catch (error) {
-                console.error("Failed to handle message:", error);
+                // console.error("Failed to handle message:", error);
+                addError(`Failed to handle message: ${error}`);
                 if (message.channel.isDMBased()) {
                     await message.channel.send("Sorry, I couldn't generate a response.");
                 } else {
