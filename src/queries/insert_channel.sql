@@ -1,0 +1,1 @@
+INSERT OR REPLACE INTO channels (id, name, is_dm, server_id) VALUES (?, ?, ?, ?);

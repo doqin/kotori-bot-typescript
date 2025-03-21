@@ -1,0 +1,1 @@
+INSERT INTO messages (user_id, channel_id, content) VALUES (?, ?, ?);
