@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, SchemaType, ObjectSchema } from "@google/generative
 import dotenv from "dotenv";
 import fs from "fs"
 import { characters, currentCharacter } from "./message_handler";
-import { addError } from ".";
+import { addLog } from ".";
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -30,19 +30,17 @@ const model = genAI.getGenerativeModel({
 
 const CHARACTERS_FILE = "characters.json"
 
-const MAX_LENGTH = 4;
-
-const MAX_FACTS = 50;
+const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
 
 async function collectCharacterFacts(): Promise<{ facts: string[] }> {
     const characterHistory = currentCharacter.messages || [];
-    if (characterHistory.length < MAX_LENGTH) {
+    if (characterHistory.length < configurations.messages_before_summary) {
         return {
             facts: currentCharacter.facts || []
         };
     }
 
-    const messagesToSummarize = characterHistory.slice(0, characterHistory.length - MAX_LENGTH / 2);
+    const messagesToSummarize = characterHistory.slice(0, characterHistory.length - configurations.messages_before_summary / 2);
 
     const characterProfile = currentCharacter.facts || { facts: [] };
 
@@ -54,7 +52,7 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
         ${characterProfile.join(", ")}
 
         Messages:
-        ${messagesToSummarize.map((m: any) => `${m.role}: ${m.parts.map((p: any) => p.text).join(" ")}`).join("\n")}
+        ${messagesToSummarize.map((m: any) => `${m.parts.map((p: any) => p.text).join(" ")}`).join("\n")}
         
         Update the character facts with any new important facts mentioned.
     `;
@@ -64,7 +62,7 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
         return JSON.parse(result.response.text());
     } catch (error) {
         // console.error("Error summarizing user history:", error);
-        addError(`Error summarizing user history: ${error}`);
+        addLog(`Error summarizing user history: ${error}`);
         return {
             facts: currentCharacter.facts || []
         };
@@ -72,16 +70,15 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
 }
 
 export async function updateCharacterFacts() {
-
-    if (currentCharacter.messages.length > MAX_LENGTH) {
+    if (currentCharacter.messages.length > configurations.messages_before_summary) {
         const summaryData = await collectCharacterFacts();
 
         currentCharacter.facts = [...new Set([...currentCharacter.facts, ...summaryData.facts])]
         
-        if (currentCharacter.facts.length > MAX_FACTS) {
-            currentCharacter.facts = [currentCharacter.facts[0], ...currentCharacter.facts.slice(-MAX_FACTS)]
+        if (currentCharacter.facts.length > configurations.max_facts) {
+            currentCharacter.facts = [currentCharacter.facts[0], ...currentCharacter.facts.slice(-configurations.max_facts)]
         }
-        currentCharacter.messages = currentCharacter.messages.slice(-MAX_LENGTH / 2);
+        currentCharacter.messages = currentCharacter.messages.slice(-configurations.messages_before_summary / 2);
     }
 
     saveCharacterProfiles();

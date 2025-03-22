@@ -1,0 +1,1 @@
+INSERT OR REPLACE INTO servers (id, name) VALUES (?, ?);

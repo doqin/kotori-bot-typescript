@@ -1,6 +1,6 @@
 import fs from "fs"
 import { ChatHistory } from "./interfaces";
-import { addError } from ".";
+import { addLog } from ".";
 
 type ChatHistories = Record<string, ChatHistory>;
 
@@ -12,7 +12,7 @@ export function loadHistory(file: string): ChatHistories {
         return data ? JSON.parse(data) as ChatHistories : {};
     } catch (error) {
         // console.error("Error loading history:", error);
-        addError(`Error loading history: ${error}`);
+        addLog(`Error loading history: ${error}`);
         return {};
     }
 }
@@ -22,6 +22,6 @@ export function saveHistory(histories: ChatHistories, file: string): void {
         fs.writeFileSync(file, JSON.stringify(histories, null, 2));
     } catch (error) {
         // console.error("Error saving history:", error);
-        addError(`Error saving history: ${error}`);
+        addLog(`Error saving history: ${error}`);
     }
 }

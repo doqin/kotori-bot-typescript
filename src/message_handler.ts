@@ -1,7 +1,8 @@
-import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } from "discord.js";
+import { Message, TextChannel, DMChannel, ThreadChannel } from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
-import { addMessage, addError } from ".";
+import { addLog } from ".";
+import { logMessage } from "./chat_logger"
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
     (async() => {
@@ -20,12 +21,13 @@ export let currentCharacter = characters.characters[0];
 
 export async function messageHandler(message: Message) {
     // console.log(`${message.author.displayName}: ${message.content}`);
-    addMessage(`${message.author.displayName}: ${message.content}`);
-
-    if (message.author.bot) return;
+    
+    if (message.author.bot) {
+        logMessage(message.author, "model", message.channel, message);
+        return;
+    }
 
     if (message.channel instanceof TextChannel || message.channel instanceof DMChannel || message.channel instanceof ThreadChannel) {
-        
         // If message is a reply, check which message is replying to
         let repliedMessage;
         if (message.reference) {
@@ -33,7 +35,7 @@ export async function messageHandler(message: Message) {
                 repliedMessage = await message.channel.messages.fetch(message.reference.messageId!);
             } catch (error) {
                 // console.error("Failed to fetch replied message:", error);
-                addError(`Failed to fetch replied message: ${error}`);
+                addLog(`Failed to fetch replied message: ${error}`);
             }
         }
         // If meets condition reply to message
@@ -41,10 +43,10 @@ export async function messageHandler(message: Message) {
             let isDone: boolean = false;
             keepTyping(message.channel, () => isDone);
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
-            const cleanMessage = message.content.replace(botMention, "").trim();
-        
+            message.content = message.content.replace(botMention, "").trim();
+            
             try {
-                const { text, images }  = await generateGeminiResponse(message, cleanMessage, currentCharacter);
+                const { text, images }  = await generateGeminiResponse(message, currentCharacter);
                 if (message.channel.isDMBased()) {
                     if (images.length > 0) {
                         await message.channel.send({
@@ -59,7 +61,7 @@ export async function messageHandler(message: Message) {
                             await message.channel.send(text);
                         } else {
                             // console.error("Response is empty");
-                            addError(`Response is empty`);
+                            addLog(`Response is empty`);
                         }
                     }
                 } else {
@@ -76,20 +78,25 @@ export async function messageHandler(message: Message) {
                             await message.reply(text);
                         } else {
                             // console.error("Response is empty");
-                            addError(`Response is empty`);
+                            addLog(`Response is empty`);
                         }
                     } 
                 }
                 isDone = true;
             } catch (error) {
                 // console.error("Failed to handle message:", error);
-                addError(`Failed to handle message: ${error}`);
+                addLog(`Failed to handle message: ${error}`);
                 if (message.channel.isDMBased()) {
                     await message.channel.send("Sorry, I couldn't generate a response.");
                 } else {
                     await message.reply("Sorry, I couldn't generate a response.");
                 }
                 isDone = true;
+            }
+            try {
+                logMessage(message.author, "user", message.channel, message);
+            } catch (error) {
+                addLog(`Error logging message: ${error}`);
             }
         }
     }
