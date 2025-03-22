@@ -5,7 +5,7 @@ import { loadHistory, saveHistory } from "./chat_history_handler";
 import { loadUserProfiles, updateUserProfile } from "./user_profile_handler";
 import { UserProfile, ChatHistory} from "./interfaces";
 import { updateCharacterFacts } from "./character_profile_handler";
-import { addError } from ".";
+import { addLog } from ".";
 import { imageUrlToBase64 } from "./imageUrlToBase64";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -137,7 +137,7 @@ export async function generateGeminiResponse(
                         });
                     } catch (error) {
                         // console.error("Error converting image to Base64:", error);
-                        addError(`Error converting image to Base64: ${error}`);
+                        addLog(`Error converting image to Base64: ${error}`);
                     }
                 }
             }
@@ -149,7 +149,7 @@ export async function generateGeminiResponse(
         // console.log("Full response:", JSON.stringify(response, null, 2));
 
         if (response.candidates?.[0].finishReason === "IMAGE_SAFETY") {
-          addError("Failed to generate image for reason: IMAGE_SAFETY");
+          addLog("Failed to generate image for reason: IMAGE_SAFETY");
           return { text: "Couldn't generate image for reason: \"IMAGE_SAFETY\"", images: [] };
         }
 
@@ -210,7 +210,7 @@ export async function generateGeminiResponse(
         return {text: aiTextResponse.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", ""), images: images};
     } catch (error) {
         // console.error("Gemini API Error:", error);
-        addError(`Gemini API Error: ${error}`);
+        addLog(`Gemini API Error: ${error}`);
         return { text: "Sorry, I'm having trouble thinking right now!", images: []};
     }
 }
@@ -227,7 +227,7 @@ async function summarizeHistory(channelId: string, messages: string[]): Promise<
         return result.response.text() || "Summary not available.";
       } catch (error) {
         // console.error(`Error summarizing history for ${channelId}:`, error);
-        addError(`Error summarizing history for ${channelId}: ${error}`);
+        addLog(`Error summarizing history for ${channelId}: ${error}`);
         return "Failed to summarize history.";
       }
 }

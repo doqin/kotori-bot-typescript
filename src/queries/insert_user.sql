@@ -1,1 +1,1 @@
-INSERT OR REPLACE INTO users (id, username) VALUES (?, ?);
+INSERT OR REPLACE INTO users (id, username, display_name) VALUES (?, ?, ?);

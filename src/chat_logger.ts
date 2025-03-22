@@ -2,28 +2,24 @@ import { Attachment, ChannelType, DMChannel, Guild, Message, User } from "discor
 import db from "./database";
 import fs from "fs"
 import { imageUrlToBase64 } from "./imageUrlToBase64";
-
-type GetMessage = {
-    username: string;
-    content: string;
-    timestamp: string;
-    mime_type?: string | null;
-    data?: Buffer | null;
-};
+import { ktrMessage, UserProfile } from "./types";
 
 type GetMessagesResult = {
     isDM: boolean;
     serverId: string | null;
-    messages: GetMessage[];
+    messages: ktrMessage[];
 };
 
+const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
+
+// Abstraction for loading queries
 function loadQuery(filename: string): string {
     return fs.readFileSync(`./src/queries/${filename}`, "utf-8");
 }
 
 function addUser(user: User) {
     const stmt = db.prepare(loadQuery("insert_user.sql"));
-    stmt.run(user.id, user.username);
+    stmt.run(user.id, user.username, user.displayName);
 }
 
 function addServer(server: Guild) {
@@ -31,7 +27,7 @@ function addServer(server: Guild) {
     stmt.run(server.id, server.name);
 }
 
-export function addChannel(channel: any) {
+function addChannel(channel: any) {
     const isDM: boolean = channel.type === ChannelType.DM;
     if (!isDM && channel.guild) {
         addServer(channel.guild);
@@ -76,9 +72,51 @@ export function getMessages(channel: any): GetMessagesResult | null {
     if (!channelRow) return null;
 
     const stmt = db.prepare(loadQuery("select_messages.sql"));
+    const rows = stmt.all(channelRow.id, configurations.message_limit, configurations.message_offset);
+
+    const messages: ktrMessage[] = rows.map((row: any) => ({
+        username: row.username,
+        display_name: row.display_name,
+        content: row.content,
+        timestamp: row.timestamp,
+        mime_type: row.mime_type ?? null,
+        data: row.data ? Buffer.from(row.data) : null
+    }));
+
     return {
         isDM: channelRow.is_dm === 1,
         serverId: channelRow.server_id,
-        messages: stmt.all(channelRow.id) as GetMessage[],
+        messages: messages.reverse(),
+    };
+}
+
+export function saveUserMemory(userId: string, personality: string, summary: string) {
+    const stmt = db.prepare(loadQuery("insert_user_memory.sql"));
+    stmt.run(userId, personality, summary);
+}
+
+export function addUserFact(userId: string, fact: string) {
+    const countStmt = db.prepare("SELECT COUNT(*) as count FROM user_facts WHERE user_id = ?");
+    const countRow = countStmt.get(userId) as { count: number } | undefined;
+    const count = countRow?.count || 0;
+
+    if (count >= configurations.max_facts) {
+        db.prepare(loadQuery("delete_user_fact.sql")).run(userId);
+    }
+
+    const stmt = db.prepare(loadQuery("insert_user_fact.sql"));
+    stmt.run(userId, fact);
+}
+
+export function getUserProfile(userId: string): UserProfile | null {
+    const stmt = db.prepare(loadQuery("select_user_profile.sql"));
+    const row = stmt.get(userId) as { personality: string; summary: string; facts: string | null };
+
+    if (!row) return null;
+
+    return {
+        personality: row.personality,
+        summary: row.summary,
+        facts: row.facts ? row.facts.split("||") : [],
     };
 }

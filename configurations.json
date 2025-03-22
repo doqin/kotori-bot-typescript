@@ -1,0 +1,5 @@
+{
+    "message_limit": 50,
+    "message_offset": 0,
+    "max_facts": 50
+}

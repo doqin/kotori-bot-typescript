@@ -2,7 +2,7 @@ import { GoogleGenerativeAI, SchemaType, ObjectSchema } from "@google/generative
 import dotenv from "dotenv";
 import fs from "fs"
 import { characters, currentCharacter } from "./message_handler";
-import { addError } from ".";
+import { addLog } from ".";
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -64,7 +64,7 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
         return JSON.parse(result.response.text());
     } catch (error) {
         // console.error("Error summarizing user history:", error);
-        addError(`Error summarizing user history: ${error}`);
+        addLog(`Error summarizing user history: ${error}`);
         return {
             facts: currentCharacter.facts || []
         };
