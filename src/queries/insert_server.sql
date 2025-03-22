@@ -1,1 +1,1 @@
-INSERT OR IGNORE INTO servers (id, name) VALUES (?, ?);
+INSERT OR REPLACE INTO servers (id, name) VALUES (?, ?);

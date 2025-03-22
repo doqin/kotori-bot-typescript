@@ -23,5 +23,5 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT NOT NULL,
     timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (channel_id) REFERENCES channels(id),
+    FOREIGN KEY (channel_id) REFERENCES channels(id)
 );

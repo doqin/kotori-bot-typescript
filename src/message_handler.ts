@@ -2,6 +2,7 @@ import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } fro
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
 import { addMessage, addError } from ".";
+import { logMessage } from "./chat_logger"
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
     (async() => {
@@ -22,10 +23,12 @@ export async function messageHandler(message: Message) {
     // console.log(`${message.author.displayName}: ${message.content}`);
     addMessage(`${message.author.displayName}: ${message.content}`);
 
-    if (message.author.bot) return;
+    if (message.author.bot) {
+        logMessage(message.author, message.channel, message);
+        return;
+    }
 
     if (message.channel instanceof TextChannel || message.channel instanceof DMChannel || message.channel instanceof ThreadChannel) {
-        
         // If message is a reply, check which message is replying to
         let repliedMessage;
         if (message.reference) {
@@ -38,6 +41,11 @@ export async function messageHandler(message: Message) {
         }
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
+            try {
+                logMessage(message.author, message.channel, message);
+            } catch (error) {
+                addError(`Error logging message: ${error}`);
+            }
             let isDone: boolean = false;
             keepTyping(message.channel, () => isDone);
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);

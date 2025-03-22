@@ -1,4 +1,4 @@
-import { ChannelType, Guild } from "discord.js";
+import { ChannelType, DMChannel, Guild, Message } from "discord.js";
 import db from "./database";
 import fs from "fs"
 
@@ -7,7 +7,7 @@ type User = {
     username: string
 };
 
-type Message = {
+type GetMessage = {
     username: string;
     content: string;
     timestamp: string;
@@ -16,11 +16,11 @@ type Message = {
 type GetMessagesResult = {
     isDM: boolean;
     serverId: string | null;
-    messages: Message[];
+    messages: GetMessage[];
 };
 
 function loadQuery(filename: string): string {
-    return fs.readFileSync(`queries/${filename}`, "utf-8");
+    return fs.readFileSync(`./src/queries/${filename}`, "utf-8");
 }
 
 export function addUser(user: User) {
@@ -39,11 +39,18 @@ export function addChannel(channel: any) {
         addServer(channel.guild);
     }
 
+    let channelName: string;
+    if (isDM) {
+        channelName = (channel as DMChannel).recipient?.username ?? "Unknown DM";
+    } else {
+        channelName = channel.name ?? "Unknown";
+    }
+
     const stmt = db.prepare(loadQuery("insert_channel.sql"));
-    stmt.run(channel.id, channel.name, isDM ? 1 : 0, isDM ? null : channel.guild.id);
+    stmt.run(channel.id, channelName, isDM ? 1 : 0, isDM ? null : channel.guild.id);
 }
 
-export function logMessage(user: User, channel: any, content: string) {
+export function logMessage(user: User, channel: any, message: Message) {
     addUser(user);
     addChannel(channel);
 
@@ -52,7 +59,8 @@ export function logMessage(user: User, channel: any, content: string) {
 
     if (userRow && channelRow) {
         const stmt = db.prepare(loadQuery("insert_message.sql"));
-        stmt.run(userRow.id, channelRow.id, content);
+        const timestamp: string = new Date(message.createdTimestamp).toISOString();
+        stmt.run(message.id, userRow.id, channelRow.id, message.content, timestamp);
     }
 }
 
@@ -64,6 +72,6 @@ export function getMessages(channel: any): GetMessagesResult | null {
     return {
         isDM: channelRow.is_dm === 1,
         serverId: channelRow.server_id,
-        messages: stmt.all(channelRow.id) as Message[],
+        messages: stmt.all(channelRow.id) as GetMessage[],
     };
 }
