@@ -1,12 +1,12 @@
 import { ActivityType, Message } from "discord.js";
 import dotenv from "dotenv";
-import axios from "axios";
 import { HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
 import { loadHistory, saveHistory } from "./chat_history_handler";
 import { loadUserProfiles, updateUserProfile } from "./user_profile_handler";
 import { UserProfile, ChatHistory} from "./interfaces";
 import { updateCharacterFacts } from "./character_profile_handler";
 import { addError } from ".";
+import { imageUrlToBase64 } from "./imageUrlToBase64";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -248,8 +248,3 @@ async function summarizeAndTrimHistory(channelId: string) {
       ...history.messages.slice(-MAX_LENGTH / 2)
     ];
   }
-
-async function imageUrlToBase64(imageUrl: string): Promise<string> {
-  const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
-  return Buffer.from(response.data).toString("base64");
-}

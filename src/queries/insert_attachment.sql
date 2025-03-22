@@ -1,0 +1,1 @@
+INSERT INTO message_attachments (message_id, mime_type, data) VALUES (?, ?, ?);

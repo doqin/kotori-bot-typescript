@@ -24,7 +24,7 @@ export async function messageHandler(message: Message) {
     addMessage(`${message.author.displayName}: ${message.content}`);
 
     if (message.author.bot) {
-        logMessage(message.author, message.channel, message);
+        logMessage(message.author, "model", message.channel, message);
         return;
     }
 
@@ -42,7 +42,7 @@ export async function messageHandler(message: Message) {
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
             try {
-                logMessage(message.author, message.channel, message);
+                logMessage(message.author, "user", message.channel, message);
             } catch (error) {
                 addError(`Error logging message: ${error}`);
             }

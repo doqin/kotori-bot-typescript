@@ -1,1 +1,1 @@
-INSERT INTO messages (id, user_id, channel_id, content, timestamp) VALUES (?, ?, ?, ?, ?);
+INSERT INTO messages (id, user_id, channel_id, role, content, timestamp) VALUES (?, ?, ?, ?, ?, ?);

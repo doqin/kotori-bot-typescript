@@ -1,16 +1,14 @@
-import { ChannelType, DMChannel, Guild, Message } from "discord.js";
+import { Attachment, ChannelType, DMChannel, Guild, Message, User } from "discord.js";
 import db from "./database";
 import fs from "fs"
-
-type User = {
-    id: string,
-    username: string
-};
+import { imageUrlToBase64 } from "./imageUrlToBase64";
 
 type GetMessage = {
     username: string;
     content: string;
     timestamp: string;
+    mime_type?: string | null;
+    data?: Buffer | null;
 };
 
 type GetMessagesResult = {
@@ -23,12 +21,12 @@ function loadQuery(filename: string): string {
     return fs.readFileSync(`./src/queries/${filename}`, "utf-8");
 }
 
-export function addUser(user: User) {
+function addUser(user: User) {
     const stmt = db.prepare(loadQuery("insert_user.sql"));
     stmt.run(user.id, user.username);
 }
 
-export function addServer(server: Guild) {
+function addServer(server: Guild) {
     const stmt = db.prepare(loadQuery("insert_server.sql"));
     stmt.run(server.id, server.name);
 }
@@ -50,18 +48,27 @@ export function addChannel(channel: any) {
     stmt.run(channel.id, channelName, isDM ? 1 : 0, isDM ? null : channel.guild.id);
 }
 
-export function logMessage(user: User, channel: any, message: Message) {
+export function logMessage(user: User, role: "user" | "model", channel: any, message: Message) {
     addUser(user);
     addChannel(channel);
 
     const userRow: any = db.prepare(loadQuery("select_user.sql")).get(user.id);
     const channelRow: any = db.prepare(loadQuery("select_channel.sql")).get(channel.id);
 
-    if (userRow && channelRow) {
-        const stmt = db.prepare(loadQuery("insert_message.sql"));
-        const timestamp: string = new Date(message.createdTimestamp).toISOString();
-        stmt.run(message.id, userRow.id, channelRow.id, message.content, timestamp);
-    }
+    if (!userRow) throw new Error(`User not found in database: ${user.id}`);
+    if (!channelRow) throw new Error(`Channel not found in database: ${channel.id}`);
+
+    const stmt = db.prepare(loadQuery("insert_message.sql"));
+    const timestamp: string = new Date(message.createdTimestamp).toISOString();
+    stmt.run(message.id, userRow.id, channelRow.id, role, message.content, timestamp);
+
+    message.attachments.forEach(async (attachment: Attachment) => {
+        if (attachment.contentType?.startsWith("image/")) {
+            const base64 = await imageUrlToBase64(attachment.url);
+            const attachmentStmt = db.prepare(loadQuery("insert_attachment.sql"));
+            attachmentStmt.run(message.id, attachment.contentType, base64);
+        }
+    });
 }
 
 export function getMessages(channel: any): GetMessagesResult | null {

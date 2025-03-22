@@ -54,7 +54,7 @@ async function collectCharacterFacts(): Promise<{ facts: string[] }> {
         ${characterProfile.join(", ")}
 
         Messages:
-        ${messagesToSummarize.map((m: any) => `${m.role}: ${m.parts.map((p: any) => p.text).join(" ")}`).join("\n")}
+        ${messagesToSummarize.map((m: any) => `${m.parts.map((p: any) => p.text).join(" ")}`).join("\n")}
         
         Update the character facts with any new important facts mentioned.
     `;
