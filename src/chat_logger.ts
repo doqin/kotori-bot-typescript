@@ -2,13 +2,7 @@ import { Attachment, ChannelType, DMChannel, Guild, Message, User } from "discor
 import db from "./database";
 import fs from "fs"
 import { imageUrlToBase64 } from "./imageUrlToBase64";
-import { ktrMessage, UserProfile } from "./types";
-
-type GetMessagesResult = {
-    isDM: boolean;
-    serverId: string | null;
-    messages: ktrMessage[];
-};
+import { ktrChatHistory, ktrMessage, UserProfile } from "./types";
 
 const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
 
@@ -67,20 +61,27 @@ export function logMessage(user: User, role: "user" | "model", channel: any, mes
     });
 }
 
-export function getMessages(channel: any): GetMessagesResult | null {
+export function getChannelMessages(
+    channel: any, 
+    limit: number = configurations.message_limit,
+    offset: number = configurations.message_offset
+): ktrChatHistory | null {
     const channelRow: any = db.prepare(loadQuery("select_channel.sql")).get(channel.id);
     if (!channelRow) return null;
 
-    const stmt = db.prepare(loadQuery("select_messages.sql"));
-    const rows = stmt.all(channelRow.id, configurations.message_limit, configurations.message_offset);
+    const stmt = db.prepare(loadQuery("select_channel_messages.sql"));
+    const rows = stmt.all(channelRow.id, limit, offset);
+
+    if (rows.length === 0) return null;
 
     const messages: ktrMessage[] = rows.map((row: any) => ({
         username: row.username,
         display_name: row.display_name,
+        role: row.role,
         content: row.content,
         timestamp: row.timestamp,
         mime_type: row.mime_type ?? null,
-        data: row.data ? Buffer.from(row.data) : null
+        data: row.data ? row.data : null
     }));
 
     return {
@@ -88,6 +89,32 @@ export function getMessages(channel: any): GetMessagesResult | null {
         serverId: channelRow.server_id,
         messages: messages.reverse(),
     };
+}
+
+export function getUserMessages(
+    user: any,
+    limit: number = configurations.message_limit,
+    offset: number = configurations.message_offset
+): ktrMessage[] | [] {
+    const userRow: any = db.prepare(loadQuery("select_user.sql")).get(user.id);
+    if (!userRow) return [];
+
+    const stmt = db.prepare(loadQuery("select_user_messages.sql"));
+    const rows = stmt.all(userRow.id, limit, offset);
+
+    if (rows.length === 0) return [];
+
+    const messages: ktrMessage[] = rows.map((row: any) => ({
+        username: row.username,
+        display_name: row.display_name,
+        role: row.role,
+        content: row.content,
+        timestamp: row.timestamp,
+        mime_type: row.mime_type ?? null,
+        data: row.data ? row.data : null
+    }));
+
+    return messages.reverse();
 }
 
 export function saveUserMemory(userId: string, personality: string, summary: string) {
@@ -108,9 +135,9 @@ export function addUserFact(userId: string, fact: string) {
     stmt.run(userId, fact);
 }
 
-export function getUserProfile(userId: string): UserProfile | null {
+export function getUserProfile(user: User): UserProfile | null {
     const stmt = db.prepare(loadQuery("select_user_profile.sql"));
-    const row = stmt.get(userId) as { personality: string; summary: string; facts: string | null };
+    const row = stmt.get(user.id) as { personality: string; summary: string; facts: string | null };
 
     if (!row) return null;
 

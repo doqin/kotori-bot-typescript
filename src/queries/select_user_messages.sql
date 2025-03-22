@@ -7,11 +7,11 @@ SELECT
     messages.role,
     messages.content,
     messages.timestamp,
-    messages_attachments.mime_type,
-    messages_attachments.data
+    message_attachments.mime_type,
+    message_attachments.data
 FROM messages
 JOIN users ON messages.user_id = users.id
 LEFT JOIN message_attachments ON messages.id = message_attachments.message_id
-WHERE messages.channel_id = ?
+WHERE users.id = ?
 ORDER BY messages.timestamp DESC
 LIMIT ? OFFSET ?;

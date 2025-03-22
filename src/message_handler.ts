@@ -1,4 +1,4 @@
-import { Message, TextChannel, DMChannel, ThreadChannel, AttachmentBuilder } from "discord.js";
+import { Message, TextChannel, DMChannel, ThreadChannel } from "discord.js";
 import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
 import { addLog } from ".";
@@ -40,18 +40,13 @@ export async function messageHandler(message: Message) {
         }
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
-            try {
-                logMessage(message.author, "user", message.channel, message);
-            } catch (error) {
-                addLog(`Error logging message: ${error}`);
-            }
             let isDone: boolean = false;
             keepTyping(message.channel, () => isDone);
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
-            const cleanMessage = message.content.replace(botMention, "").trim();
-        
+            message.content = message.content.replace(botMention, "").trim();
+            
             try {
-                const { text, images }  = await generateGeminiResponse(message, cleanMessage, currentCharacter);
+                const { text, images }  = await generateGeminiResponse(message, currentCharacter);
                 if (message.channel.isDMBased()) {
                     if (images.length > 0) {
                         await message.channel.send({
@@ -97,6 +92,11 @@ export async function messageHandler(message: Message) {
                     await message.reply("Sorry, I couldn't generate a response.");
                 }
                 isDone = true;
+            }
+            try {
+                logMessage(message.author, "user", message.channel, message);
+            } catch (error) {
+                addLog(`Error logging message: ${error}`);
             }
         }
     }
