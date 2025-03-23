@@ -42,6 +42,7 @@ export async function messageHandler(message: Message) {
         }
         // If meets condition reply to message
         if (message.mentions.has(message.client.user) || message.channel.isDMBased() || repliedMessage?.author.id === message.client.user?.id) {
+            sendMessageToClients(message);
             let isDone: boolean = false;
             keepTyping(message.channel, () => isDone);
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
@@ -96,7 +97,6 @@ export async function messageHandler(message: Message) {
                 isDone = true;
             }
             try {
-                sendMessageToClients(message);
                 logMessage(message.author, "user", message.channel, message);
             } catch (error) {
                 addLog(`Error logging message: ${error}`);
