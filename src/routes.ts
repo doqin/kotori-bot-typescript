@@ -2,13 +2,15 @@ import { Router } from "express";
 import { loadQuery } from "./chat_logger";
 import configurations from "./configurations";
 import connectDB from "./connectDB";
+import { addLog } from ".";
 
 export const router = Router();
 
 router.get("/channels", async (req, res) => {
     const db = await connectDB();
     const channels = await db.all(loadQuery("select_channels.sql"));
-    res.json(channels); 
+    res.json(channels);
+    addLog(`> Sent channels`);
 });
 
 // Get messages from a specific channel
@@ -32,6 +34,7 @@ router.get("/messages/:channel_id", async (req, res) => {
 
     const messages = await db.all(query, params);
     res.json(messages);
+    addLog(`> Sent messages from ${channel_id}`);
 });
 
 // Get user profile

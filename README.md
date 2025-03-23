@@ -6,8 +6,6 @@ If you want to use this for your own chatbot make sure to create a .env file in 
 + CLIENT_ID (Your Discord Application ID)
 + GEMINI_API_KEY (Your Google Gemini API Key)
 
-You can use the existing character (Kotori) from characters.json or add your own characters.
-
 Run these commands to start running
 ```
 npx tsx src/deploy_commands.ts
@@ -16,6 +14,10 @@ npx ts-node src/index.ts
 
 > [!NOTE]
 > Open the `configurations.json` file and adjust the variables to your preferences
->
+> You can use the existing character (Kotori) from `characters.json` or add your own characters.
+
+If you want an interface for checking chatlogs from the database consider using my personal chatlogger made just for this.
+
+[![Readme Card](https://github-readme-stats.vercel.app/api/pin/?username=doqin&show_owner=true&repo=chatlogger-for-ktrbot-ts)](https://github.com/doqin/chatlogger-for-ktrbot-ts.git)
 
 ### Have fun! 👋
