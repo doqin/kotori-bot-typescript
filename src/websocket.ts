@@ -1,33 +1,57 @@
-import { Server } from "socket.io";
-import connectDB from "./connectDB";
-import { loadQuery } from "./chat_logger";
+import { TextChannel, DMChannel, ThreadChannel, Message } from "discord.js";
+import { WebSocketServer, WebSocket } from "ws";
 import http from "http";
 import app from "./app";
-import { addLog } from ".";
+import { addLog, client } from ".";
+import { ktrMessage } from "./types";
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
-    cors: { origin: "*" },
-});
+const wss = new WebSocketServer({ server });
 
-io.on("connection", (socket) => {
-    addLog(`> New client connected: ${socket.id}`);
+wss.on("connection", (ws: WebSocket) => {
+    addLog(`> New client connected`);
 
-    socket.on("send_message", async (messageData) => {
-        const db = await connectDB();
-        const { id, user_id, channel_id, role, content } = messageData;
+    ws.on("message", async (data) => {
+        try {
+            const messageData = JSON.parse(data.toString());
+            let { channel_id, content } = messageData;
 
-        // Insert message into database
-        await db.run(loadQuery("insert_message.sql"), [id, user_id, channel_id, role, content]);
-
-        // Broadcast the message to all clients
-        io.emit("receive_message", messageData);
+            const channel = await client.channels.fetch(channel_id);
+            
+            if (channel instanceof TextChannel || channel instanceof DMChannel || channel instanceof ThreadChannel) {
+                channel.send(content);
+            } else {
+                addLog(`> Channel ${channel_id} not found or not a text channel.`)
+            }
+        } catch (error) {
+            addLog(`> Error processing message: ${error}`);
+        }
     });
 
-    socket.on("disconnect", () => {
-        addLog(`Client disconnected: ${socket.id}`);
+    ws.on("close", () => {
+        addLog(`> Client disconnected`);
     });
 });
+
+export function sendMessageToClients(message: Message) {
+    const messageData = {
+        user_id: message.author.id,
+        channel_id: message.channel.id,
+        username: message.author.username,
+        display_name: message.author.username,
+        content: message.content,
+        timestamp: new Date(message.createdTimestamp).toISOString()
+    };
+
+    const messageString = JSON.stringify(messageData);
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(messageString);
+        }
+    });
+    addLog(`> Sent message to clients`);
+}
 
 export { server };

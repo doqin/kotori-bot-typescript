@@ -15,40 +15,20 @@
           "userId": "system",
           "parts": [
             {
-              "text": "Ah, the foundation! Gotta get that solid first. Which framework are you diving into?"
-            }
-          ],
-          "timestamp": 1742711867905
-        },
-        {
-          "role": "model",
-          "userId": "system",
-          "parts": [
-            {
-              "text": "Qt, nice! I've heard good things. Seems pretty powerful. How's the learning curve treating you?"
-            }
-          ],
-          "timestamp": 1742711879694
-        },
-        {
-          "role": "model",
-          "userId": "system",
-          "parts": [
-            {
-              "text": "Haha, sounds like fun! In a frustrating but also \"aha!\" kind of way? Good luck wrapping your head around it!"
-            }
-          ],
-          "timestamp": 1742714907868
-        },
-        {
-          "role": "model",
-          "userId": "system",
-          "parts": [
-            {
               "text": "Afternoon! What's up?"
             }
           ],
           "timestamp": 1742751523970
+        },
+        {
+          "role": "model",
+          "userId": "system",
+          "parts": [
+            {
+              "text": "Hey there! Back at it with the Qt framework?"
+            }
+          ],
+          "timestamp": 1742758995227
         }
       ]
     }

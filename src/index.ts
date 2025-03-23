@@ -10,7 +10,7 @@ import { commandHandler } from "./command_handler";
 // Loads .env file contents
 dotenv.config();
 
-const client = new Client({
+export const client = new Client({
     intents: [
         GatewayIntentBits.Guilds, 
         GatewayIntentBits.GuildMessages,

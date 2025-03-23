@@ -3,6 +3,7 @@ import fs from "fs"
 import { generateGeminiResponse } from "./generate_message";
 import { addLog } from ".";
 import { logMessage } from "./chat_logger"
+import { sendMessageToClients } from "./websocket";
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
     (async() => {
@@ -23,6 +24,7 @@ export async function messageHandler(message: Message) {
     // console.log(`${message.author.displayName}: ${message.content}`);
     
     if (message.author.bot) {
+        sendMessageToClients(message);
         logMessage(message.author, "model", message.channel, message);
         return;
     }
@@ -94,6 +96,7 @@ export async function messageHandler(message: Message) {
                 isDone = true;
             }
             try {
+                sendMessageToClients(message);
                 logMessage(message.author, "user", message.channel, message);
             } catch (error) {
                 addLog(`Error logging message: ${error}`);
