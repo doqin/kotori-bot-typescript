@@ -1,5 +1,7 @@
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import dotenv from "dotenv";
+import { server } from "./websocket";
+import configurations from "./configurations";
 const blessed = require("blessed");
 
 import { messageHandler } from "./message_handler";
@@ -77,7 +79,15 @@ screen.key("k", () => {
     screen.render();
 });
 
+// Set interface on terminal
 screen.render();
 
 // Connect bot
 client.login(process.env.TOKEN);
+
+if (configurations.start_server) {
+    // Start API
+    server.listen(configurations.port, () => {
+        addLog(`> Server running on https://127.0.0.1:${configurations.port}`);
+    });
+}

@@ -15,11 +15,18 @@
     "axios": "^1.8.3",
     "better-sqlite3": "^11.9.1",
     "blessed": "^0.1.81",
+    "cors": "^2.8.5",
     "discord.js": "^14.18.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
     "@types/node": "^22.13.10",
     "@types/ws": "^8.18.0",
     "ts-node": "^10.9.2",

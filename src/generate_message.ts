@@ -2,19 +2,17 @@ import { Message } from "discord.js";
 import dotenv from "dotenv";
 import { HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
 import { updateUserProfile } from "./user_profile_handler";
-import { UserProfile } from "./interfaces";
+import { UserProfile } from "./types";
 import { updateCharacterFacts } from "./character_profile_handler";
 import { addLog } from ".";
 import { imageUrlToBase64 } from "./imageUrlToBase64";
 import { getUserProfile, getChannelMessages } from "./chat_logger";
-import fs from "fs";
+import configurations from "./configurations";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
 
 const safetySettings = [
     {
@@ -112,42 +110,43 @@ export async function generateGeminiResponse(
     }
 
     const history = [
-      ...systemMessage,
-      ...(getChannelMessages(message.channel)?.messages
-      .map(msg => {
-          let messageData: any;
-          if (msg.role === "user") {
-              const messageParts: Part[] = [{ text: `${msg.display_name} (${msg.username}): ${msg.content}` }];
-              if (msg.mime_type && msg.data) {
-                  messageParts.push({
-                      inlineData: {
-                          mimeType: msg.mime_type,
-                          data: msg.data
-                      },
-                  });
-              }
-              messageData = {
-                  role: msg.role,
-                  parts: messageParts,
-              };
-          } else {
-              messageData = {
-                  role: msg.role,
-                  parts: [
-                      {
-                          text: msg.content,
-                      }
-                  ]
-              }
-          }
+        ...systemMessage,
+        ...(getChannelMessages(message.channel)?.messages
+        .map(msg => {
+            let messageData: any;
+            if (msg.role === "user") {
+                const messageParts: Part[] = [{ text: `${msg.display_name} (${msg.username}): ${msg.content}` }];
+                if (msg.mime_type && msg.data) {
+                    messageParts.push({
+                        inlineData: {
+                            mimeType: msg.mime_type,
+                            data: msg.data
+                        },
+                    });
+                }
+                messageData = {
+                    role: msg.role,
+                    parts: messageParts,
+                };
+            } else {
+                messageData = {
+                    role: msg.role,
+                    parts: [
+                        {
+                            text: msg.content,
+                        }
+                    ]
+                }
+            }
+            return messageData;
+        }) || [])
+    ]
 
-          return messageData;
-      }) || [])
-  ]
-
+    /* uncomment to debug
     addLog(`${message.author.displayName}'s prompt:\n${history.map(message => {
       return message.parts.map((part: { text: any; }) => part.text).join(" ");
     }).join("\n")}`);
+    */
 
     try {
         const chat = model.startChat({history});

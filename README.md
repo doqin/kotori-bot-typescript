@@ -14,4 +14,8 @@ npx tsx src/deploy_commands.ts
 npx ts-node src/index.ts
 ```
 
+> [!NOTE]
+> Open the `configurations.json` file and adjust the variables to your preferences
+>
+
 ### Have fun! 👋

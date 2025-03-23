@@ -1,6 +1,3 @@
 .vscode/
 .env
-chat_history.json
-user_history.json
-user_profiles.json
 *.db

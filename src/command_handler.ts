@@ -1,7 +1,5 @@
 
 import { ChatInputCommandInteraction, PermissionFlagsBits, Interaction, ChannelType } from "discord.js";
-import { saveHistory } from "./chat_history_handler";
-import { updateUserProfile } from "./user_profile_handler";
 
 export async function commandHandler(interaction: Interaction) {
     if (!interaction.isChatInputCommand()) return;

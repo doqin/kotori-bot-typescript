@@ -5,6 +5,7 @@ import { addLog } from ".";
 import { addUserFact, getUserMessages, getUserProfile, saveUserMemory } from "./chat_logger";
 import { User } from "discord.js"
 import { ktrMessage, UserProfile } from "./types";
+import configurations from "./configurations";
 
 dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -39,8 +40,6 @@ const model = genAI.getGenerativeModel({
         responseSchema: userSchema,
     },
 });
-
-const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
 
 let messageCount: Record<string, number> = {};
 

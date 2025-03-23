@@ -3,11 +3,10 @@ import db from "./database";
 import fs from "fs"
 import { imageUrlToBase64 } from "./imageUrlToBase64";
 import { ktrChatHistory, ktrMessage, UserProfile } from "./types";
-
-const configurations = JSON.parse(fs.readFileSync("configurations.json", "utf-8"));
+import configurations from "./configurations";
 
 // Abstraction for loading queries
-function loadQuery(filename: string): string {
+export function loadQuery(filename: string): string {
     return fs.readFileSync(`./src/queries/${filename}`, "utf-8");
 }
 
