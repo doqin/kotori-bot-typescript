@@ -13,7 +13,8 @@ npx ts-node src/index.ts
 ```
 
 > [!NOTE]
-> Open the `configurations.json` file and adjust the variables to your preferences
+> Open the `configurations.json` file and adjust the variables to your preferences.
+> 
 > You can use the existing character (Kotori) from `characters.json` or add your own characters.
 
 If you want an interface for checking chatlogs from the database consider using my personal chatlogger made just for this.
