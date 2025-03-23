@@ -39,6 +39,16 @@
             }
           ],
           "timestamp": 1742714907868
+        },
+        {
+          "role": "model",
+          "userId": "system",
+          "parts": [
+            {
+              "text": "Afternoon! What's up?"
+            }
+          ],
+          "timestamp": 1742751523970
         }
       ]
     }

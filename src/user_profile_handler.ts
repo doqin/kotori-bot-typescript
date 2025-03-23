@@ -83,7 +83,9 @@ async function summarizeUserHistory(user: User, userHistory: ktrMessage[]): Prom
 
 export async function updateUserProfile(user: User) {
     messageCount[user.id] = (messageCount[user.id] || 0) + 1;
+    /*
     addLog(`${user.displayName}'s message count: ${messageCount[user.id]}`);
+    */
     const userHistory: ktrMessage[] = getUserMessages(user);
 
     if (messageCount[user.id] > configurations.messages_before_summary) {
