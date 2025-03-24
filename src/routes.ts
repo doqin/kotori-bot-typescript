@@ -6,6 +6,14 @@ import { addLog } from ".";
 
 export const router = Router();
 
+router.get("/servers", async (req, res) => {
+    const db = await connectDB();
+    const servers = await db.all(loadQuery("select_servers.sql"));
+    res.json(servers);
+    addLog(`> Sent servers`);
+});
+
+// Get channels
 router.get("/channels", async (req, res) => {
     const db = await connectDB();
     const channels = await db.all(loadQuery("select_channels.sql"));
