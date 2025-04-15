@@ -18,40 +18,20 @@
           "userId": "system",
           "parts": [
             {
-              "text": "Oh, that's a fun emote."
+              "text": "Haha, maybe a little bit. What's on your mind?"
             }
           ],
-          "timestamp": 1742813591459
+          "timestamp": 1744738031486
         },
         {
           "role": "model",
           "userId": "system",
           "parts": [
             {
-              "text": "Oh, a sleepy kitty! Cute."
+              "text": "Tung tung sahur! Sounds fun. You doing anything interesting today?"
             }
           ],
-          "timestamp": 1742813831314
-        },
-        {
-          "role": "model",
-          "userId": "system",
-          "parts": [
-            {
-              "text": "That one's cute too. Looks happy."
-            }
-          ],
-          "timestamp": 1742813883141
-        },
-        {
-          "role": "model",
-          "userId": "system",
-          "parts": [
-            {
-              "text": "That's a cute sticker."
-            }
-          ],
-          "timestamp": 1742814016441
+          "timestamp": 1744738055676
         }
       ]
     }
