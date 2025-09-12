@@ -2,15 +2,15 @@ import { TextChannel, DMChannel, ThreadChannel, Message } from "discord.js";
 import { WebSocketServer, WebSocket } from "ws";
 import http from "http";
 import app from "./app";
-import { addLog, client } from ".";
-import { ktrMessage } from "./types";
+import { client } from ".";
+import { ktrMessage } from "./common/types";
 
 const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
-    addLog(`> New client connected`);
+    console.log(`> New client connected`);
 
     ws.on("message", async (data) => {
         try {
@@ -22,15 +22,15 @@ wss.on("connection", (ws: WebSocket) => {
             if (channel instanceof TextChannel || channel instanceof DMChannel || channel instanceof ThreadChannel) {
                 channel.send(content);
             } else {
-                addLog(`> Channel ${channel_id} not found or not a text channel.`)
+                console.log(`> Channel ${channel_id} not found or not a text channel.`)
             }
         } catch (error) {
-            addLog(`> Error processing message: ${error}`);
+            console.log(`> Error processing message: ${error}`);
         }
     });
 
     ws.on("close", () => {
-        addLog(`> Client disconnected`);
+        console.log(`> Client disconnected`);
     });
 });
 
@@ -51,7 +51,7 @@ export function sendMessageToClients(message: Message) {
             client.send(messageString);
         }
     });
-    addLog(`> Sent message to clients`);
+    console.log(`> Sent message to clients`);
 }
 
 export { server };

@@ -1,7 +1,6 @@
 import { Message, TextChannel, DMChannel, ThreadChannel } from "discord.js";
 import fs from "fs"
-import { generateGeminiResponse } from "./generate_message";
-import { addLog } from ".";
+import { generateGeminiResponse, generateOpenRouterResponse } from "./generate_message";
 import { logMessage } from "./chat_logger"
 import { sendMessageToClients } from "./websocket";
 
@@ -18,14 +17,25 @@ function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal
 export let characters = JSON.parse(fs.readFileSync("characters.json", "utf8"));
 
 // Select current character as the first character in the list
-export let currentCharacter = characters.characters[0];
+export let currentCharacter = characters.characters?.[0];
 
+if (!currentCharacter) {
+    throw new Error("No characters found in characters.json or characters array is empty");
+}
+
+
+
+/**
+ * Handles incoming messages and generates responses
+ * @param message The incoming message
+ * @returns A promise that resolves when the message has been processed
+ */
 export async function messageHandler(message: Message) {
     // console.log(`${message.author.displayName}: ${message.content}`);
     
     if (message.author.bot) {
         sendMessageToClients(message);
-        logMessage(message.author, "model", message.channel, message);
+        logMessage(message.author, "assistant", message.channel, message);
         return;
     }
 
@@ -36,8 +46,7 @@ export async function messageHandler(message: Message) {
             try {
                 repliedMessage = await message.channel.messages.fetch(message.reference.messageId!);
             } catch (error) {
-                // console.error("Failed to fetch replied message:", error);
-                addLog(`Failed to fetch replied message: ${error}`);
+                console.log(`Failed to fetch replied message: ${error}`);
             }
         }
         // If meets condition reply to message
@@ -49,7 +58,10 @@ export async function messageHandler(message: Message) {
             message.content = message.content.replace(botMention, "").trim();
             
             try {
-                const { text, images }  = await generateGeminiResponse(message, currentCharacter);
+                const { text, images }  = 
+                    process.env.BOT == "GEMINI"
+                    ? await generateGeminiResponse(message, currentCharacter)
+                    : await generateOpenRouterResponse(message, currentCharacter);
                 if (message.channel.isDMBased()) {
                     if (images.length > 0) {
                         await message.channel.send({
@@ -63,8 +75,7 @@ export async function messageHandler(message: Message) {
                         if (text) {
                             await message.channel.send(text);
                         } else {
-                            // console.error("Response is empty");
-                            addLog(`Response is empty`);
+                            console.log(`Response is empty`);
                         }
                     }
                 } else {
@@ -80,15 +91,13 @@ export async function messageHandler(message: Message) {
                         if (text) {
                             await message.reply(text);
                         } else {
-                            // console.error("Response is empty");
-                            addLog(`Response is empty`);
+                            console.log(`Response is empty`);
                         }
                     } 
                 }
                 isDone = true;
             } catch (error) {
-                // console.error("Failed to handle message:", error);
-                addLog(`Failed to handle message: ${error}`);
+                console.error(`Failed to handle message: ${error}`);
                 if (message.channel.isDMBased()) {
                     await message.channel.send("Sorry, I couldn't generate a response.");
                 } else {
@@ -99,7 +108,7 @@ export async function messageHandler(message: Message) {
             try {
                 logMessage(message.author, "user", message.channel, message);
             } catch (error) {
-                addLog(`Error logging message: ${error}`);
+                console.error(`Error logging message: ${error}`);
             }
         }
     }

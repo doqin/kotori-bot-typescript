@@ -1,13 +1,13 @@
 import { GoogleGenerativeAI, SchemaType, ObjectSchema } from "@google/generative-ai";
 import dotenv from "dotenv";
-import fs from "fs";
-import { addLog } from ".";
-import { addUserFact, getUserMessages, getUserProfile, saveUserMemory } from "./chat_logger";
+import { getUserMessages, getUserProfile, saveUserMemory } from "./chat_logger";
 import { User } from "discord.js"
-import { ktrMessage, UserProfile } from "./types";
-import configurations from "./configurations";
+import { ktrMessage, UserProfile } from "./common/types";
+import configurations from "./common/configurations";
+import { callOpenRouter } from "./helpers/callOpenRouter";
 
 dotenv.config();
+//#region Setup Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const userSchema: ObjectSchema = {
@@ -40,25 +40,25 @@ const model = genAI.getGenerativeModel({
         responseSchema: userSchema,
     },
 });
+//#endregion
 
 let messageCount: Record<string, number> = {};
 
+//#region Summerize User History
 async function summarizeUserHistory(user: User, userHistory: ktrMessage[]): Promise<UserProfile> {
-    const userProfile: UserProfile = getUserProfile(user) || { personality: "unknown", summary: "", facts: []};
+    const userProfile: UserProfile = getUserProfile(user) || { summary: "" };
     if (userHistory.length < configurations.messages_before_summary) {
         return userProfile;
     }
 
     const messagesToSummarize = userHistory;
 
-    const summaryPrompt = `
+    const summaryPrompt: string = `
         Analyze the following conversation and extract structured information about the user.
         Identify their personality traits, summarize their interactions, and extract key facts they have explicitly mentioned.
 
         Existing User Profile:
-        - Personality: ${userProfile.personality}
         - Summary: ${userProfile.summary}
-        - Facts: ${userProfile.facts.join(", ")}
 
         Messages:
         ${messagesToSummarize.map(m => `${user.displayName}: ${m.content}`).join("\n")}
@@ -67,34 +67,48 @@ async function summarizeUserHistory(user: User, userHistory: ktrMessage[]): Prom
         and any new important facts mentioned.
     `;
 
-    try {
-        const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: summaryPrompt }] }] });
-        return JSON.parse(result.response.text());
-    } catch (error) {
-        // console.error("Error summarizing user history:", error);
-        addLog(`Error summarizing user history: ${error}`);
+    // Using Gemini for summary
+    if (process.env.BOT == "GEMINI") {
+        try {
+            const result = await model.generateContent({ contents: [{ role: "user", parts: [{ text: summaryPrompt }] }] });
+            return JSON.parse(result.response.text());
+        } catch (error) {
+            // console.error("Error summarizing user history:", error);
+            console.log(`Error summarizing user history: ${error}`);
+            return {
+                summary: userProfile.summary || ""
+            };
+        }
+    // Using OpenRouter for summary
+    } else {
+        console.log("Summarizing User History...")
+        let result = await callOpenRouter(
+            process.env.OPENROUTER_API_KEY,
+            "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+            undefined,
+            [
+                {
+                    "role": "user",
+                    "content": summaryPrompt
+                }
+            ]
+        )
         return {
-            personality: userProfile.personality || "unknown",
-            summary: userProfile.summary || "",
-            facts: userProfile.facts || []
-        };
+            summary: result
+        }
     }
 }
+//#endregion
 
+//#region Update User Profile
 export async function updateUserProfile(user: User) {
     messageCount[user.id] = (messageCount[user.id] || 0) + 1;
-    /*
-    addLog(`${user.displayName}'s message count: ${messageCount[user.id]}`);
-    */
     const userHistory: ktrMessage[] = getUserMessages(user);
 
     if (messageCount[user.id] > configurations.messages_before_summary) {
         messageCount[user.id] = 0;
         const summaryData = await summarizeUserHistory(user, userHistory);
 
-        saveUserMemory(user.id, summaryData.personality, summaryData.summary);
-        summaryData.facts.forEach(fact => {
-            addUserFact(user.id, fact);
-        });
+        saveUserMemory(user.id, summaryData.summary);
     }
 }

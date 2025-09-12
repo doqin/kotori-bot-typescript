@@ -1,7 +1,7 @@
 export type ktrMessage = {
     username: string;
     display_name: string;
-    role: "user" | "model";
+    role: "user" | "assistant";
     content: string;
     timestamp: string;
     mime_type?: string | null;
@@ -15,7 +15,10 @@ export type ktrChatHistory = {
 };
 
 export type UserProfile = {
-    personality: string,
-    summary: string,
-    facts: string[]
+    summary: string
 };
+
+export type OpenRouterMessage = {
+    role: "user" | "assistant";
+    content: string
+}

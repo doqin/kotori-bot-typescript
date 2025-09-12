@@ -3,7 +3,7 @@
     "port": 8080,
     "summary_size": 50,
     "messages_before_summary": 4,
-    "message_limit": 50,
+    "message_limit": 100,
     "message_offset": 0,
     "max_facts": 50
 }

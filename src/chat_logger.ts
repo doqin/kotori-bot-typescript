@@ -1,9 +1,9 @@
 import { Attachment, ChannelType, DMChannel, Guild, Message, User } from "discord.js";
 import db from "./database";
 import fs from "fs"
-import { imageUrlToBase64 } from "./imageUrlToBase64";
-import { ktrChatHistory, ktrMessage, UserProfile } from "./types";
-import configurations from "./configurations";
+import { imageUrlToBase64 } from "./helpers/imageUrlToBase64";
+import { ktrChatHistory, ktrMessage, UserProfile } from "./common/types";
+import configurations from "./common/configurations";
 
 // Abstraction for loading queries
 export function loadQuery(filename: string): string {
@@ -37,7 +37,7 @@ function addChannel(channel: any) {
     stmt.run(channel.id, channelName, isDM ? 1 : 0, isDM ? null : channel.guild.id);
 }
 
-export function logMessage(user: User, role: "user" | "model", channel: any, message: Message) {
+export function logMessage(user: User, role: "user" | "assistant", channel: any, message: Message) {
     addUser(user);
     addChannel(channel);
 
@@ -116,22 +116,9 @@ export function getUserMessages(
     return messages.reverse();
 }
 
-export function saveUserMemory(userId: string, personality: string, summary: string) {
+export function saveUserMemory(userId: string, summary: string) {
     const stmt = db.prepare(loadQuery("insert_user_memory.sql"));
-    stmt.run(userId, personality, summary);
-}
-
-export function addUserFact(userId: string, fact: string) {
-    const countStmt = db.prepare("SELECT COUNT(*) as count FROM user_facts WHERE user_id = ?");
-    const countRow = countStmt.get(userId) as { count: number } | undefined;
-    const count = countRow?.count || 0;
-
-    if (count >= configurations.max_facts) {
-        db.prepare(loadQuery("delete_user_fact.sql")).run(userId);
-    }
-
-    const stmt = db.prepare(loadQuery("insert_user_fact.sql"));
-    stmt.run(userId, fact);
+    stmt.run(userId, summary);
 }
 
 export function getUserProfile(user: User): UserProfile | null {
@@ -141,8 +128,6 @@ export function getUserProfile(user: User): UserProfile | null {
     if (!row) return null;
 
     return {
-        personality: row.personality,
-        summary: row.summary,
-        facts: row.facts ? row.facts.split("||") : [],
+        summary: row.summary
     };
 }
