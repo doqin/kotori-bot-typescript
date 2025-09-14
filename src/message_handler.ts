@@ -1,12 +1,12 @@
 import { Message, TextChannel, DMChannel, ThreadChannel } from "discord.js";
 import fs from "fs"
-import { generateGeminiResponse, generateOpenRouterResponse } from "./generate_message";
+import { generateAIHordeResponse, generateGeminiResponse, generateOpenRouterResponse } from "./generate_message";
 import { logMessage } from "./chat_logger"
 import { sendMessageToClients } from "./websocket";
 
 function keepTyping(channel: TextChannel | DMChannel | ThreadChannel, stopSignal: () => boolean) {
-    (async() => {
-        while(!stopSignal()) {
+    (async () => {
+        while (!stopSignal()) {
             await channel.sendTyping();
             await new Promise((resolve) => setTimeout(resolve, 5000)) // Call every 5s
         }
@@ -32,7 +32,7 @@ if (!currentCharacter) {
  */
 export async function messageHandler(message: Message) {
     // console.log(`${message.author.displayName}: ${message.content}`);
-    
+
     if (message.author.bot) {
         sendMessageToClients(message);
         logMessage(message.author, "assistant", message.channel, message);
@@ -56,12 +56,12 @@ export async function messageHandler(message: Message) {
             keepTyping(message.channel, () => isDone);
             const botMention = new RegExp(`<@!?${message.client.user?.id}>`);
             message.content = message.content.replace(botMention, "").trim();
-            
+
             try {
-                const { text, images }  = 
-                    process.env.BOT == "GEMINI"
-                    ? await generateGeminiResponse(message, currentCharacter)
-                    : await generateOpenRouterResponse(message, currentCharacter);
+                const { text, images } =
+                    process.env.BOT == "GEMINI" ? await generateGeminiResponse(message, currentCharacter)
+                        : process.env.BOT == "OPENROUTER" ? await generateOpenRouterResponse(message, currentCharacter)
+                            : await generateAIHordeResponse(message, currentCharacter);
                 if (message.channel.isDMBased()) {
                     if (images.length > 0) {
                         await message.channel.send({
@@ -93,7 +93,7 @@ export async function messageHandler(message: Message) {
                         } else {
                             console.log(`Response is empty`);
                         }
-                    } 
+                    }
                 }
                 isDone = true;
             } catch (error) {

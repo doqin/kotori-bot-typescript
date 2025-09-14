@@ -8,8 +8,9 @@ If you want to use this for your own chatbot make sure to create a .env file in 
 
 Run these commands to start running
 ```
+npm install
 npx tsx src/deploy_commands.ts
-npx ts-node src/index.ts
+npm run dev
 ```
 
 > [!NOTE]

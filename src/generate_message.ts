@@ -8,10 +8,13 @@ import { getUserProfile, getChannelMessages } from "./chat_logger";
 import configurations from "./common/configurations";
 import { callOpenRouter } from "./helpers/callOpenRouter";
 import { saveCharacterProfiles } from "./character_profile_handler";
+import { callAIHorde } from "./helpers/callAIHorde";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
+
+const aihorde_model = "koboldcpp/Fimbulvetr-11B-v2"
 
 //#region Helpers
 
@@ -26,7 +29,7 @@ function getActivityText(message: Message): string {
                 if (act.type === 1) return `streaming ${act.name}`;
                 if (act.type === 2) {
                     if (act.name === "Spotify" && act.details && act.state) {
-                      return `listening to "${act.details}" by ${act.state}`;
+                        return `listening to "${act.details}" by ${act.state}`;
                     }
                     return `listening to ${act.name}`;
                 }
@@ -41,20 +44,36 @@ function getActivityText(message: Message): string {
     return activityText;
 }
 
-async function summarizeHistory(channelId: string, messages: string[]): Promise<string> {
+async function summarizeHistory(
+    channelId: string,
+    messages: string[]
+): Promise<string> {
     if (messages.length === 0) return "No messages to summarize.";
 
     try {
         const prompt = `Summarize the following conversation briefly while keeping key details:\n\n${messages.join("\n")}`;
-    
+
         if (process.env.BOT == "GEMINI") {
             const result = await model.generateContent(prompt);
             return result.response.text() || "Summary not available.";
-        // Use OpenRouter for summarizing history
-        } else {
+            // Use OpenRouter for summarizing history
+        } else if (process.env.BOT == "OPENROUTER") {
             const result = await callOpenRouter(
                 process.env.OPENROUTER_API_KEY,
                 "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+                undefined,
+                [
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ]
+            );
+            return result || "Summary not available.";
+        } else {
+            const result = await callAIHorde(
+                process.env.AIHORDE_API_KEY,
+                aihorde_model,
                 undefined,
                 [
                     {
@@ -145,7 +164,7 @@ export async function generateGeminiResponse(
             role: "user",
             parts: [
                 {
-                  text: `Summary: ${summary}`
+                    text: `Summary: ${summary}`
                 }
             ]
         });
@@ -155,38 +174,38 @@ export async function generateGeminiResponse(
     const history = [
         ...systemMessage,
         ...(getChannelMessages(message.channel)?.messages
-        .map(msg => {
-            let messageData: any;
-            if (msg.role === "user") {
-                const messageParts: Part[] = [{ text: `${msg.display_name} (${msg.username}): ${msg.content}` }];
-                if (msg.mime_type && msg.data) {
-                    messageParts.push({
-                        inlineData: {
-                            mimeType: msg.mime_type,
-                            data: msg.data
-                        },
-                    });
+            .map(msg => {
+                let messageData: any;
+                if (msg.role === "user") {
+                    const messageParts: Part[] = [{ text: `${msg.display_name} (${msg.username}): ${msg.content}` }];
+                    if (msg.mime_type && msg.data) {
+                        messageParts.push({
+                            inlineData: {
+                                mimeType: msg.mime_type,
+                                data: msg.data
+                            },
+                        });
+                    }
+                    messageData = {
+                        role: msg.role,
+                        parts: messageParts,
+                    };
+                } else {
+                    messageData = {
+                        role: msg.role,
+                        parts: [
+                            {
+                                text: msg.content,
+                            }
+                        ]
+                    }
                 }
-                messageData = {
-                    role: msg.role,
-                    parts: messageParts,
-                };
-            } else {
-                messageData = {
-                    role: msg.role,
-                    parts: [
-                        {
-                            text: msg.content,
-                        }
-                    ]
-                }
-            }
-            return messageData;
-        }) || [])
+                return messageData;
+            }) || [])
     ]
 
     try {
-        const chat = model.startChat({history});
+        const chat = model.startChat({ history });
 
         const messageParts: Part[] = [{ text: `${message.author.displayName} (${message.author.username}): ${message.content}` }];
 
@@ -235,22 +254,22 @@ export async function generateGeminiResponse(
 
         // Store messages in history
 
-        const aiResponseParts: Part[] = [{ text: aiTextResponse}];
+        const aiResponseParts: Part[] = [{ text: aiTextResponse }];
 
         character.messages.push({
-            role: "model", 
-            userId: "system", 
-            parts: aiResponseParts, 
+            role: "model",
+            userId: "system",
+            parts: aiResponseParts,
             timestamp: Date.now()
         })
 
         await updateUserProfile(message.author);
         saveCharacterProfiles()
 
-        return {text: aiTextResponse.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", ""), images: images};
+        return { text: aiTextResponse.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", ""), images: images };
     } catch (error) {
         console.log(`Gemini API Error:\n ${error}`);
-        return { text: "Sorry, I'm having trouble thinking right now!", images: []};
+        return { text: "Sorry, I'm having trouble thinking right now!", images: [] };
     }
 }
 
@@ -272,7 +291,7 @@ export async function generateOpenRouterResponse(
         summary = await summarizeHistory(channelId, messagesToSummarize.map(msg => `${msg.role}: ${msg.content}`))
     }
 
-    const userProfile: UserProfile = getUserProfile(message.author) || { summary: ""};
+    const userProfile: UserProfile = getUserProfile(message.author) || { summary: "" };
 
     let systemMessage = `From now on, you are ${character.name}, ${character.description}. Your personality: ${character.personality}. Your lore: ${character.lore}.\nThis user has talked to you before. Here is what you know about them: \n- Summary: ${userProfile.summary} \n- Discord Activity: ${activityText} \nKeep responses short and casual, don't talk about your personal info unless it's relevant. Don't use emojis.\n`
 
@@ -282,7 +301,7 @@ export async function generateOpenRouterResponse(
 
     let messages: OpenRouterMessage[] = [
         // History
-        ...(getChannelMessages(message.channel)?.messages?.map(msg => ({ 
+        ...(getChannelMessages(message.channel)?.messages?.map(msg => ({
             role: msg.role,
             content: `${msg.display_name} (${msg.username}): ${msg.content}`
         })) || []),
@@ -295,9 +314,9 @@ export async function generateOpenRouterResponse(
 
     try {
         let response = await callOpenRouter(
-            process.env.OPENROUTER_API_KEY, 
-            "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", 
-            systemMessage, 
+            process.env.OPENROUTER_API_KEY,
+            "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+            systemMessage,
             messages
         );
 
@@ -316,10 +335,81 @@ export async function generateOpenRouterResponse(
         await updateUserProfile(message.author);
         saveCharacterProfiles();
 
-        return {text: response.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", "").replace("Kotori (Kotori): ", "").replace("Kako (Kako): ", ""), images: []}
+        return { text: response.replace("Kako: ", "").replace("Kotori: ", "").replace("Kotori (Kako): ", "").replace("Kotori (Kotori): ", "").replace("Kako (Kako): ", ""), images: [] }
     } catch (error) {
         console.log(`OpenRouter API Error:\n ${error}`);
-        return { text: "Sorry, I'm having trouble thinking right now!", images: []};
+        return { text: "Sorry, I'm having trouble thinking right now!", images: [] };
+    }
+}
+
+//#endregion
+
+//#region AIHorde
+
+export async function generateAIHordeResponse(
+    message: Message,
+    character: any
+): Promise<{ text: string; images: Buffer[] }> {
+    const channelId = message.channel.id;
+
+    let activityText = getActivityText(message);
+
+    const messagesToSummarize = getChannelMessages(message.channel, configurations.summary_size, configurations.message_limit)?.messages;
+    let summary: string = "";
+    if (messagesToSummarize) {
+        summary = await summarizeHistory(channelId, messagesToSummarize.map(msg => `${msg.role}: ${msg.content}`))
+    }
+
+    const userProfile: UserProfile = getUserProfile(message.author) || { summary: "" };
+
+    let systemMessage = `From now on, you are ${character.name}, ${character.description}. Your personality: ${character.personality}. Your lore: ${character.lore}.\nThis user has talked to you before. Here is what you know about them: \n- Summary: ${userProfile.summary} \n- Discord Activity: ${activityText} \nKeep responses short and casual, don't talk about your personal info unless it's relevant. Don't use emojis.\n`
+
+    if (summary) {
+        systemMessage += `Summary: ${summary}\n`
+    }
+
+    let messages = [
+        // History
+        ...(getChannelMessages(message.channel)?.messages?.map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            name: `${msg.display_name} (${msg.username})`
+        })) || []),
+        // Latest message
+        {
+            "role": "user",
+            "content": message.content,
+            "name": `${message.author.displayName} (${message.author.username})`
+        }
+    ];
+
+    try {
+        let response = await callAIHorde(
+            process.env.AIHORDE_API_KEY,
+            aihorde_model,
+            systemMessage,
+            messages
+        );
+
+        if (!response) {
+            console.log("Empty response received from AIHorde");
+            return { text: "Sorry, I couldn't generate a response.", images: [] };
+        }
+
+        character.messages.push({
+            role: "assistant",
+            userId: "system",
+            content: response,
+            timestamp: Date.now()
+        });
+
+        await updateUserProfile(message.author);
+        saveCharacterProfiles();
+
+        return { text: response, images: [] }
+    } catch (error) {
+        console.log(`AIHorde API Error:\n ${error}`);
+        return { text: "Sorry, I'm having trouble thinking right now!", images: [] };
     }
 }
 
