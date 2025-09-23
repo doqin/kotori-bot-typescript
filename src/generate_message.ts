@@ -9,12 +9,13 @@ import configurations from "./common/configurations";
 import { callOpenRouter } from "./helpers/callOpenRouter";
 import { saveCharacterProfiles } from "./character_profile_handler";
 import { callAIHorde } from "./helpers/callAIHorde";
+import { getAIHordeModels } from "./helpers/getAIHordeModel";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
 
-const aihorde_model = "koboldcpp/Fimbulvetr-11B-v2"
+// const aihorde_model = "koboldcpp/Fimbulvetr-11B-v2"
 
 //#region Helpers
 
@@ -71,18 +72,30 @@ async function summarizeHistory(
             );
             return result || "Summary not available.";
         } else {
-            const result = await callAIHorde(
-                process.env.AIHORDE_API_KEY,
-                aihorde_model,
-                undefined,
-                [
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ]
-            );
-            return result || "Summary not available.";
+            let models = await getAIHordeModels();
+            if (models === null) {
+                console.log(`AIHorde API Error:\n Couldn't get any models`);
+                throw new Error("Could not fetch AIHorde models");
+            }
+            for (const model of models) {
+                try {
+                    const result = await callAIHorde(
+                        process.env.AIHORDE_API_KEY,
+                        model.id,
+                        undefined,
+                        [
+                            {
+                                role: "user",
+                                content: prompt
+                            }
+                        ]
+                    );
+                    return result;
+                } catch (e) {
+                    console.error(`AIHorde API Error:\n${e}`);
+                }
+            }
+            return "Failed to summarize history.";
         }
     } catch (error) {
         console.log(`Error summarizing history for ${channelId}: ${error}`);
@@ -383,34 +396,40 @@ export async function generateAIHordeResponse(
         }
     ];
 
-    try {
-        let response = await callAIHorde(
-            process.env.AIHORDE_API_KEY,
-            aihorde_model,
-            systemMessage,
-            messages
-        );
-
-        if (!response) {
-            console.log("Empty response received from AIHorde");
-            return { text: "Sorry, I couldn't generate a response.", images: [] };
-        }
-
-        character.messages.push({
-            role: "assistant",
-            userId: "system",
-            content: response,
-            timestamp: Date.now()
-        });
-
-        await updateUserProfile(message.author);
-        saveCharacterProfiles();
-
-        return { text: response, images: [] }
-    } catch (error) {
-        console.log(`AIHorde API Error:\n ${error}`);
+    let models = await getAIHordeModels();
+    if (models === null) {
+        console.log(`AIHorde API Error:\n Couldn't get any models`);
         return { text: "Sorry, I'm having trouble thinking right now!", images: [] };
     }
+    for (const model of models) {
+        console.debug(`Using ${model.id}`)
+        let response: string = "";
+        try {
+            response = await callAIHorde(
+                process.env.AIHORDE_API_KEY,
+                model.id,
+                systemMessage,
+                messages
+            );
+        } catch (error) {
+            console.error(`AIHorde API Error:\n ${error}`);
+            if (model != models.at(-1)) console.debug("Trying again...")
+        }
+        if (response != "") {
+            character.messages.push({
+                role: "assistant",
+                userId: "system",
+                content: response,
+                timestamp: Date.now()
+            });
+
+            await updateUserProfile(message.author);
+            saveCharacterProfiles();
+
+            return { text: response, images: [] }
+        }
+    }
+    return { text: "Sorry, I'm having trouble thinking right now!", images: [] };
 }
 
 //#endregion

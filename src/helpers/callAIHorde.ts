@@ -37,7 +37,7 @@ export async function callAIHorde(
         body: JSON.stringify(payload)
     });
     const data = await response.json();
-    console.log(data);
+    console.debug(data);
 
     // Check if response has valid choices
     if (!data.choices || data.choices.length === 0) {
